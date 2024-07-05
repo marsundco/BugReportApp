@@ -35,6 +35,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.view.View
 import android.widget.ImageView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -71,12 +73,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val takePictureLauncher: ActivityResultLauncher<Uri> = registerForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
-        if (success) {
-            imageView.setImageURI(photoUri)
-        }
+    private fun dispatchTakePictureIntent() {
+        // Create the camera_intent ACTION_IMAGE_CAPTURE it will open the camera for capture the image
+        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        // Start the activity with camera_intent, and request pic id
+        startActivityForResult(cameraIntent, PIC_ID)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,13 +93,29 @@ class MainActivity : AppCompatActivity() {
         takePhotoButton = findViewById(R.id.takePhotoButton)
         imageView = findViewById(R.id.imageView)
 
-        takePhotoButton.setOnClickListener {
+        takePhotoButton.setOnClickListener(View.OnClickListener {
             requestCameraPermission()
-        }
+        })
 
-        submitButton.setOnClickListener {
-            submitReport()
+//        submitButton.setOnClickListener {
+//            submitReport()
+//        }
+    }
+
+    // This method will help to retrieve the image
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        // Match the request 'pic id with requestCode
+        if (requestCode == PIC_ID) {
+            // BitMap is data structure of image file which store the image in memory
+            val photo = data!!.extras!!["data"] as Bitmap?
+            // Set the image in imageview for display
+            imageView.setImageBitmap(photo)
         }
+    }
+    companion object {
+        // Define the pic id
+        private const val PIC_ID = 123
     }
 
     private fun requestCameraPermission() {
@@ -115,12 +132,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun dispatchTakePictureIntent() {
-        val photoFile: File = createImageFile()
-        photoUri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", photoFile)
-        takePictureLauncher.launch(photoUri)
-    }
-
     private fun createImageFile(): File {
         val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
         return File.createTempFile(
@@ -130,69 +141,69 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun submitReport() {
-        val shortDesc = shortDescEditText.text.toString()
-        val projectName = projectNameEditText.text.toString()
-        val productId = productIdEditText.text.toString()
-        val detailedDesc = detailedDescEditText.text.toString()
-        val reporterName = reporterNameEditText.text.toString()
+//    private fun submitReport() {
+//        val shortDesc = shortDescEditText.text.toString()
+//        val projectName = projectNameEditText.text.toString()
+//        val productId = productIdEditText.text.toString()
+//        val detailedDesc = detailedDescEditText.text.toString()
+//        val reporterName = reporterNameEditText.text.toString()
+//
+//        val message = detailedDesc
+//
+//        if (shortDesc.isEmpty()) {
+//            Toast.makeText(this, "Short description cannot be empty", Toast.LENGTH_SHORT).show()
+//            return
+//        }
+//
+//        // Launch a coroutine to call the suspend function
+//        lifecycleScope.launch {
+//            try {
+//                val imgurLinks = uploadImagesToImgur()
+//                val response = createTask(
+//                    "SnVrYd", // Replace with your project ID
+//                    shortDesc,
+//                    "USER1-ID", // Replace with actual user ID
+//                    message + "\n" + imgurLinks.joinToString("\n"),
+//                    projectName,
+//                    productId,
+//                    reporterName
+//                )
+//                // Handle the response if needed
+//                Toast.makeText(this@MainActivity, "Task created successfully", Toast.LENGTH_SHORT).show()
+//            } catch (e: Exception) {
+//                // Handle the exception
+//                Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+//            }
+//            clearInputs()
+//        }
+//    }
 
-        val message = detailedDesc
-
-        if (shortDesc.isEmpty()) {
-            Toast.makeText(this, "Short description cannot be empty", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Launch a coroutine to call the suspend function
-        lifecycleScope.launch {
-            try {
-                val imgurLinks = uploadImagesToImgur()
-                val response = createTask(
-                    "SnVrYd", // Replace with your project ID
-                    shortDesc,
-                    "USER1-ID", // Replace with actual user ID
-                    message + "\n" + imgurLinks.joinToString("\n"),
-                    projectName,
-                    productId,
-                    reporterName
-                )
-                // Handle the response if needed
-                Toast.makeText(this@MainActivity, "Task created successfully", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                // Handle the exception
-                Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-            clearInputs()
-        }
-    }
-
-    private suspend fun uploadImagesToImgur(photoUri: Uri): List<String> {
-        val imgurLinks = mutableListOf<String>()
-        withContext(Dispatchers.IO) {
-            val file = File(photoUri.path!!)
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
-
-            val response = imgurService.uploadImage(body).execute()
-
-            if (response.isSuccessful) {
-                val responseBody = response.body()?.string()
-                if (responseBody != null) {
-                    val jsonElement = JsonParser.parseString(responseBody)
-                    val link = jsonElement.asJsonObject
-                        .getAsJsonObject("data")
-                        ?.get("link")?.asString
-                    if (link != null) {
-                        imgurLinks.add(link)
-                    }
-                }
-            } else {
-                Log.e("ImgurService", "Error uploading image: ${response.code()}")
-            }
-        }
-        return imgurLinks
-    }
+//    private suspend fun uploadImagesToImgur(photoUri: Uri): List<String> {
+//        val imgurLinks = mutableListOf<String>()
+//        withContext(Dispatchers.IO) {
+//            val file = File(photoUri.path!!)
+//            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+//            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+//
+//            val response = imgurService.uploadImage(body).execute()
+//
+//            if (response.isSuccessful) {
+//                val responseBody = response.body()?.string()
+//                if (responseBody != null) {
+//                    val jsonElement = JsonParser.parseString(responseBody)
+//                    val link = jsonElement.asJsonObject
+//                        .getAsJsonObject("data")
+//                        ?.get("link")?.asString
+//                    if (link != null) {
+//                        imgurLinks.add(link)
+//                    }
+//                }
+//            } else {
+//                Log.e("ImgurService", "Error uploading image: ${response.code()}")
+//            }
+//        }
+//        return imgurLinks
+//    }
 
 
 
