@@ -1,49 +1,35 @@
 package com.example.bugreportapp
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
-import com.example.bugreportapp.network.*
+import com.example.bugreportapp.network.ApiClient
+import com.example.bugreportapp.network.CustomField
+import com.example.bugreportapp.network.CustomFieldsData
+import com.example.bugreportapp.network.CustomFieldsResponse
+import com.example.bugreportapp.network.GoodDayService
+import com.example.bugreportapp.network.ImgurService
+import com.example.bugreportapp.network.TaskData
+import com.example.bugreportapp.network.TaskResponse
 import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.*
-import com.google.gson.JsonParser
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
-import android.Manifest
-import android.app.Activity
-import android.content.pm.PackageManager
-import android.widget.ImageView
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import com.example.bugreportapp.network.ApiClient
-import com.example.bugreportapp.network.GoodDayService
-import com.example.bugreportapp.network.ImgurService
-
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,30 +39,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var detailedDescEditText: EditText
     private lateinit var reporterNameEditText: EditText
     private lateinit var submitButton: Button
-    private lateinit var takePhotoButton: Button
-    private lateinit var imageView: ImageView
+    private lateinit var cameraButton: Button
+    private lateinit var capturedImageView: ImageView
 
     private val goodDayService: GoodDayService = ApiClient.goodDayService
     private val imgurService: ImgurService = ApiClient.imgurService
 
-    private lateinit var photoUri: Uri
-
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            dispatchTakePictureIntent()
-        } else {
-            Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private val takePictureLauncher: ActivityResultLauncher<Uri> = registerForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
-        if (success) {
-            imageView.setImageURI(photoUri)
-        }
+    companion object {
+        private const val CAMERA_REQUEST_CODE = 123
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,49 +59,54 @@ class MainActivity : AppCompatActivity() {
         detailedDescEditText = findViewById(R.id.detailedDescEditText)
         reporterNameEditText = findViewById(R.id.reporterNameEditText)
         submitButton = findViewById(R.id.submitButton)
-        takePhotoButton = findViewById(R.id.takePhotoButton)
-        imageView = findViewById(R.id.imageView)
-
-        takePhotoButton.setOnClickListener {
-            requestCameraPermission()
-        }
+        cameraButton = findViewById(R.id.cameraButton)
+        capturedImageView = findViewById(R.id.capturedImageView)
 
         submitButton.setOnClickListener {
             submitReport()
         }
+//
+//        cameraButton.setOnClickListener {
+//            openCamera()
+        // Camera_open button is for open the camera and add the setOnClickListener in this button
+        cameraButton.setOnClickListener(View.OnClickListener { v: View? ->
+            // Create the camera_intent ACTION_IMAGE_CAPTURE it will open the camera for capture the image
+            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            // Start the activity with camera_intent, and request pic id
+            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+        })
+
+
+
     }
 
-    private fun requestCameraPermission() {
-        when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
-                dispatchTakePictureIntent()
-            }
-            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
-                Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
-            }
-            else -> {
-                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
+    //    private fun openCamera() {
+//        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+//        startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+//    }
+// This method will help to retrieve the image
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        // Match the request 'pic id with requestCode
+        if (requestCode == CAMERA_REQUEST_CODE) {
+            // BitMap is data structure of image file which store the image in memory
+            val photo = data!!.extras!!["data"] as Bitmap?
+            // Set the image in imageview for display
+            capturedImageView.setImageBitmap(photo)
         }
     }
 
-    private fun dispatchTakePictureIntent() {
-        val photoFile: File = createImageFile()
-        photoUri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", photoFile)
-        takePictureLauncher.launch(photoUri)
-    }
 
-    private fun createImageFile(): File {
-        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
-        return File.createTempFile(
-            "JPEG_${System.currentTimeMillis()}_",
-            ".jpg",
-            storageDir
-        )
-    }
+
 
     private fun submitReport() {
         val shortDesc = shortDescEditText.text.toString()
+
+        if (shortDesc.isEmpty()) {
+            Toast.makeText(this, "Short description cannot be empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val projectName = projectNameEditText.text.toString()
         val productId = productIdEditText.text.toString()
         val detailedDesc = detailedDescEditText.text.toString()
@@ -139,20 +114,14 @@ class MainActivity : AppCompatActivity() {
 
         val message = detailedDesc
 
-        if (shortDesc.isEmpty()) {
-            Toast.makeText(this, "Short description cannot be empty", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         // Launch a coroutine to call the suspend function
         lifecycleScope.launch {
             try {
-                val imgurLinks = uploadImagesToImgur()
                 val response = createTask(
                     "SnVrYd", // Replace with your project ID
                     shortDesc,
                     "USER1-ID", // Replace with actual user ID
-                    message + "\n" + imgurLinks.joinToString("\n"),
+                    message,
                     projectName,
                     productId,
                     reporterName
@@ -166,35 +135,6 @@ class MainActivity : AppCompatActivity() {
             clearInputs()
         }
     }
-
-    private suspend fun uploadImagesToImgur(photoUri: Uri): List<String> {
-        val imgurLinks = mutableListOf<String>()
-        withContext(Dispatchers.IO) {
-            val file = File(photoUri.path!!)
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
-
-            val response = imgurService.uploadImage(body).execute()
-
-            if (response.isSuccessful) {
-                val responseBody = response.body()?.string()
-                if (responseBody != null) {
-                    val jsonElement = JsonParser.parseString(responseBody)
-                    val link = jsonElement.asJsonObject
-                        .getAsJsonObject("data")
-                        ?.get("link")?.asString
-                    if (link != null) {
-                        imgurLinks.add(link)
-                    }
-                }
-            } else {
-                Log.e("ImgurService", "Error uploading image: ${response.code()}")
-            }
-        }
-        return imgurLinks
-    }
-
-
 
     private suspend fun createTask(
         projectId: String,
@@ -226,7 +166,6 @@ class MainActivity : AppCompatActivity() {
                 CustomField(id = "l8dmpO", value = projectName),
                 CustomField(id = "MBYlLP", value = productId),
                 CustomField(id = "5Mk38y", value = reporterName)
-                // CustomField(id = "I9vbkT", value = departmentNo)
             )
         )
 
