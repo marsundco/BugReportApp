@@ -1,50 +1,30 @@
 package com.example.bugreportapp
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
+import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.lifecycle.lifecycleScope
 import com.example.bugreportapp.network.*
-import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
-import com.google.gson.JsonParser
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
-import android.Manifest
-import android.app.Activity
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.view.View
-import android.widget.ImageView
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import com.example.bugreportapp.network.ApiClient
-import com.example.bugreportapp.network.GoodDayService
-import com.example.bugreportapp.network.ImgurService
-
 
 
 class MainActivity : AppCompatActivity() {
@@ -61,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private val goodDayService: GoodDayService = ApiClient.goodDayService
     private val imgurService: ImgurService = ApiClient.imgurService
 
-    private lateinit var photoUri: Uri
+    private lateinit var photo: File
 
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -77,6 +57,9 @@ class MainActivity : AppCompatActivity() {
         // Create the camera_intent ACTION_IMAGE_CAPTURE it will open the camera for capture the image
         val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         // Start the activity with camera_intent, and request pic id
+        photo = createNewImageFile(this)
+        val uri = FileProvider.getUriForFile(this, "$packageName.provider", photo)
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
         startActivityForResult(cameraIntent, PIC_ID)
     }
 
@@ -107,12 +90,28 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         // Match the request 'pic id with requestCode
         if (requestCode == PIC_ID) {
-            // BitMap is data structure of image file which store the image in memory
-            val photo = data!!.extras!!["data"] as Bitmap?
-            // Set the image in imageview for display
-            imageView.setImageBitmap(photo)
+            val resultBitmap : Bitmap = BitmapFactory.decodeFile(photo.absolutePath)
+            saveBitmapToFile(resultBitmap, "image/jpg", photo.absolutePath)
+            imageView.setImageBitmap(resultBitmap)
         }
     }
+
+    private fun saveBitmapToFile(bitmap: Bitmap?, mimeType: String, absolutePath: String?) {
+        if (absolutePath == null || bitmap == null){
+            return
+        }
+
+        val file = File(absolutePath)
+        val stream = FileOutputStream(file)
+
+        if (mimeType.contains("jpg", true) || mimeType.contains("jpeg", true))
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+        else if (mimeType.contains("png", true))
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+
+        stream.close()
+    }
+
     companion object {
         // Define the pic id
         private const val PIC_ID = 123
@@ -132,13 +131,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createImageFile(): File {
-        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+    @Throws(IOException::class)
+    fun createNewImageFile(context: Context): File {
+        // Create an image file name
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val storageDir: File? = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         return File.createTempFile(
-            "JPEG_${System.currentTimeMillis()}_",
-            ".jpg",
-            storageDir
-        )
+            "JPEG_${timeStamp}_", /* prefix */
+            ".jpg", /* suffix */
+            storageDir /* directory */
+        ).apply {
+            // Save a file: path for use with ACTION_VIEW intents
+            absolutePath
+        }
     }
 
 //    private fun submitReport() {
@@ -205,65 +210,6 @@ class MainActivity : AppCompatActivity() {
 //        return imgurLinks
 //    }
 
-
-
-    private suspend fun createTask(
-        projectId: String,
-        title: String,
-        fromUserId: String,
-        message: String,
-        projectName: String,
-        productId: String,
-        reporterName: String
-    ): TaskResponse {
-        val taskData = TaskData(
-            projectId = projectId,
-            title = title,
-            fromUserId = fromUserId,
-            message = message
-        )
-
-        // Create task
-        val tokenGoodDay = "a15e14026c0541e39fe1c04587ca11bc"
-        val response = goodDayService.createTask(tokenGoodDay, taskData)
-        if (!response.isSuccessful) throw IOException("Unexpected code ${response.code()}")
-
-        val newTask = response.body() ?: throw IOException("Empty response body")
-
-        // Update custom fields
-        val taskId = newTask.id
-        val customFields = CustomFieldsData(
-            customFields = listOf(
-                CustomField(id = "l8dmpO", value = projectName),
-                CustomField(id = "MBYlLP", value = productId),
-                CustomField(id = "5Mk38y", value = reporterName)
-                // CustomField(id = "I9vbkT", value = departmentNo)
-            )
-        )
-
-        val customFieldsResponse =
-            goodDayService.updateCustomFields(tokenGoodDay, taskId, customFields)
-        if (!customFieldsResponse.isSuccessful) {
-            Log.e("GoodDayService", "Error updating custom fields: ${customFieldsResponse.code()}")
-            throw IOException("Unexpected code ${customFieldsResponse.code()}")
-        }
-
-        val customFieldsResponseBody = customFieldsResponse.body()?.string()
-        Log.d("GoodDayService", "Update Custom Fields Response Body: $customFieldsResponseBody")
-
-        // Check if the response is a string and handle it
-        if (customFieldsResponseBody != null && customFieldsResponseBody.startsWith("{")) {
-            // Parse JSON response if it's an object
-            val customFieldsResponseObject =
-                Gson().fromJson(customFieldsResponseBody, CustomFieldsResponse::class.java)
-            Log.d("GoodDayService", "Custom Fields Response: $customFieldsResponseObject")
-        } else {
-            // Handle raw string response
-            Log.d("GoodDayService", "Custom Fields Response is not a JSON object")
-        }
-
-        return newTask
-    }
 
     private fun clearInputs() {
         shortDescEditText.text.clear()
