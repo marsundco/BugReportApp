@@ -88,6 +88,9 @@ class MainActivity : AppCompatActivity() {
     // This method will help to retrieve the image
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != RESULT_OK){
+            return
+        }
         // Match the request 'pic id with requestCode
         if (requestCode == PIC_ID) {
             val resultBitmap : Bitmap = BitmapFactory.decodeFile(photo.absolutePath)
