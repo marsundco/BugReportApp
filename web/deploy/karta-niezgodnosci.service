@@ -1,0 +1,25 @@
+[Unit]
+Description=Karta niezgodnosci (WUWER) - formularz zgloszen niezgodnosci
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wuwer
+WorkingDirectory=/opt/karta-niezgodnosci/web
+# Sekrety: albo plik .env obok config.py (chmod 600), albo Environment= ponizej.
+# EnvironmentFile jest wygodniejszy przy rotacji klucza - edycja + restart.
+EnvironmentFile=/opt/karta-niezgodnosci/web/.env
+ExecStart=/opt/karta-niezgodnosci/web/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001
+Restart=always
+RestartSec=5
+
+# Utwardzenie: aplikacja nie potrzebuje niczego poza wlasnym katalogiem.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/karta-niezgodnosci/web
+
+[Install]
+WantedBy=multi-user.target
