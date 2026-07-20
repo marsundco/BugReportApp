@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Karta niezgodności — WUWER</title>
+  <meta name="theme-color" content="#0b1220">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
+    </div>
+    <h1>Karta niezgodności</h1>
+  </header>
+
+  <main class="wrap">
+    <form id="report-form" class="card" novalidate>
+      <div class="field">
+        <label for="shortDesc">Jaka niezgodnośc postąpiła? <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" id="shortDesc" name="shortDesc" required
+               autocomplete="off" enterkeyhint="next">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="projectName">Numer Projektu</label>
+          <input type="text" id="projectName" name="projectName" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="productId">ID Produktu / Numer Rysunku</label>
+          <input type="text" id="productId" name="productId" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="detailedDesc">Napisz opis problemu.</label>
+        <textarea id="detailedDesc" name="detailedDesc" rows="5"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="reporterName">Imie i nazwisko</label>
+        <input type="text" id="reporterName" name="reporterName" autocomplete="name">
+      </div>
+
+      {% if photo_enabled %}
+      <div class="field">
+        <span class="label-static">Zdjęcie</span>
+        <!-- capture="environment" otwiera tylny aparat na tablecie/telefonie,
+             a na desktopie degraduje się do zwykłego wyboru pliku. -->
+        <input type="file" id="photo" name="photo" accept="image/*"
+               capture="environment" hidden>
+        <label for="photo" class="btn btn-ghost" id="photo-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="ico">
+            <path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor"
+                  stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          <span>Add Photo</span>
+        </label>
+
+        <div id="preview" class="preview" hidden>
+          <img id="preview-img" alt="Podgląd zdjęcia">
+          <button type="button" class="preview-remove" id="preview-remove"
+                  aria-label="Usuń zdjęcie">×</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary" id="submit-btn">
+        <span class="lbl-idle">Zgłoś karte</span>
+        <span class="lbl-busy">Wysyłam…</span>
+      </button>
+    </form>
+  </main>
+
+  <!-- role=status: czytniki ekranu ogłaszają wynik bez przechwytywania fokusu -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="/static/app.js?v={{ asset_v }}" type="module"></script>
+</body>
+</html>

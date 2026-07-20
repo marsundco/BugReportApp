@@ -1,0 +1,281 @@
+/* Karta niezgodności — dark theme.
+   Nazwy zmiennych celowo takie same jak w LDMB (--bg, --bg-elev, --text-dim,
+   --border), żeby oba nasze webappy czytało się jak jedną rodzinę. Różnica:
+   powierzchnie przesunięte w granat marki, a akcentem jest żółty z logo. */
+:root {
+  /* Powierzchnie — granat/węgiel wyprowadzony z brandowego #00366B */
+  --bg: #0b1220;
+  --bg-elev: #131c2e;
+  --bg-input: #0e1729;
+  --border: #22304a;
+  --border-strong: #2f4064;
+
+  /* Typografia */
+  --text: #e6edf3;
+  --text-dim: #adbac7;
+  --text-muted: #8b949e;
+
+  /* Marka */
+  --navy: #00366B;
+  --accent: #FFD966;        /* brandowy żółty — jedyny mocny akcent */
+  --accent-dim: #cfae52;    /* żółty przygaszony — hover na przycisku */
+  --accent-ink: #1a1400;    /* tekst NA żółtym — kontrast AA */
+
+  /* Stany */
+  --ok: #3fb950;
+  --ok-bg: #12281a;
+  --danger: #f85149;
+  --danger-bg: #2b1414;
+
+  --radius: 12px;
+  --radius-sm: 9px;
+  /* Pola pełnej szerokości, ale nie rozjeżdżają się na tablecie/desktopie.
+     To jest wprost lekarstwo na sztywne 400dp z wersji androidowej. */
+  --max-w: 720px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Blokada „gumowego" przewijania na iOS w trybie PWA */
+  overscroll-behavior-y: contain;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  /* Bezpieczne marginesy pod notchem/paskiem gestów na tablecie */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ---------- Nagłówek ---------- */
+
+.header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 20px 16px;
+  text-align: center;
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(0, 54, 107, 0.55) 0%, transparent 70%),
+    var(--bg);
+}
+
+/* Logo tintowane techniką maski (jak w LDMB): kształt bierzemy z alfy PNG,
+   a wypełniamy zmienną motywu. Dzięki temu wordmark jest MONOCHROMATYCZNY
+   z definicji — nie trzeba utrzymywać osobnego pliku w innym kolorze. */
+.brand .logo {
+  display: block;
+  margin: 0 auto;
+  height: 34px;
+  width: 100%;
+  max-width: 190px;
+  background-color: var(--accent);
+  -webkit-mask: url(/static/logo-white.png) center / contain no-repeat;
+          mask: url(/static/logo-white.png) center / contain no-repeat;
+}
+
+.header h1 {
+  margin: 14px 0 0;
+  font-size: clamp(22px, 5.5vw, 30px);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* ---------- Układ ---------- */
+
+.wrap {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Dwa pola obok siebie dopiero gdy jest na to miejsce — mobile-first.
+   Poniżej 560px wszystko układa się w jedną kolumnę, pełna szerokość. */
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 560px) {
+  .row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- Pola ---------- */
+
+.field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+
+.field label,
+.field .label-static {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.2px;
+}
+
+.req { color: var(--accent); margin-left: 2px; }
+
+input[type="text"],
+textarea {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 13px;
+  /* 16px to minimum, przy którym iOS NIE zoomuje przy fokusie w pole. */
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+textarea { resize: vertical; min-height: 116px; }
+
+input[type="text"]:hover,
+textarea:hover { border-color: var(--border-strong); }
+
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 217, 102, 0.16);
+}
+
+/* Pole z błędem walidacji (klasa nadawana z JS po nieudanej próbie wysyłki) */
+.field.invalid input[type="text"],
+.field.invalid textarea {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.14);
+}
+
+.field-error {
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* ---------- Przyciski ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  /* 48px = wygodny cel dotykowy w rękawicach roboczych na hali */
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 16px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  width: 100%;
+  margin-top: 2px;
+}
+.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.65; cursor: default; transform: none; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: var(--border-strong);
+  border-style: dashed;
+  width: 100%;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+.btn .ico { width: 21px; height: 21px; flex: none; }
+
+/* Stan „wysyłam": pokazujemy tylko jedną etykietę naraz */
+.btn .lbl-busy { display: none; }
+.btn.busy .lbl-idle { display: none; }
+.btn.busy .lbl-busy { display: inline; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Podgląd zdjęcia ---------- */
+
+.preview { position: relative; margin-top: 10px; }
+
+.preview img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.preview-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: rgba(11, 18, 32, 0.85);
+  color: var(--text);
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+.preview-remove:hover { border-color: var(--danger); color: var(--danger); }
+
+.preview.uploading img { opacity: 0.5; }
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(10px);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok { border-color: var(--ok); background: var(--ok-bg); }
+.toast.err { border-color: var(--danger); background: var(--danger-bg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, input, textarea { transition: none; }
+}
