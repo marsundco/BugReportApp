@@ -13,3 +13,18 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# === WebApp (web/) ===
+# Sekrety — NIGDY nie commituj
+.env
+web/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# OS
+Thumbs.db
