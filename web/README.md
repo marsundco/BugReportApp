@@ -107,7 +107,9 @@ deploy/           systemd + instrukcja (HTTPS, rotacja klucza)
 
 ## Uwagi eksploatacyjne
 
-- **HTTPS jest wymagane na produkcji** — bez niego nie zadziała instalacja PWA
-  ani `capture="environment"` (aparat). Szczegóły w [deploy/README.md](deploy/README.md).
+- **HTTPS jest potrzebne do instalacji PWA**, ale nie do aparatu —
+  `<input type="file" capture>` to nie `getUserMedia` i działa po zwykłym HTTP.
+  Po LAN bez certyfikatu aplikacja jest w pełni używalna (ze zdjęciami); traci
+  się tylko „Dodaj do ekranu głównego". Szczegóły w [deploy/README.md](deploy/README.md).
 - **Brak kolejki offline** — świadomie. Urządzenia są online w chwili zgłoszenia,
   a ciche wysyłanie po godzinach dawałoby duplikaty i „znikające" zgłoszenia.

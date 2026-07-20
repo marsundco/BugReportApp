@@ -27,16 +27,20 @@ systemctl status karta-niezgodnosci
 
 Sprawdzenie: `curl http://localhost:8001/healthz` → `{"status":"ok", ...}`.
 
-## HTTPS — wymagane dla PWA i aparatu
+## HTTPS — potrzebne do instalacji PWA (ale nie do aparatu)
 
-To nie jest opcjonalne. Bez bezpiecznego kontekstu:
+Bez bezpiecznego kontekstu (`https://` albo `http://localhost`):
 
-- przeglądarka **nie zainstaluje** aplikacji (service worker działa tylko po HTTPS),
-- `capture="environment"` **nie otworzy aparatu** na tablecie.
+- przeglądarka **nie zainstaluje** aplikacji — service worker wymaga HTTPS,
+- **aparat działa normalnie.** `<input type="file" capture>` to nie
+  `getUserMedia` i nie ma wymogu bezpiecznego kontekstu.
 
-Wyjątkiem jest `http://localhost` (dlatego development działa bez certyfikatu).
-Na produkcji postaw reverse proxy (nginx/Caddy) z certyfikatem — przy dostępie
-wyłącznie z sieci lokalnej wystarczy certyfikat z wewnętrznego CA
+Praktycznie: po zwykłym HTTP przez LAN aplikacja jest w pełni używalna — można
+zgłaszać niezgodności ze zdjęciem. Traci się wyłącznie „Dodaj do ekranu
+głównego" i start w trybie standalone.
+
+Na produkcji i tak warto postawić reverse proxy (nginx/Caddy) z certyfikatem —
+przy dostępie wyłącznie z LAN wystarczy certyfikat z wewnętrznego CA
 zaimportowany na tablecie.
 
 Przykład dla Caddy (sam ogarnia certyfikat):
