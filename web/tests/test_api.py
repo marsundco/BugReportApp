@@ -68,6 +68,14 @@ def test_pole_zdjecia_pozwala_na_wiele_plikow():
     assert "multiple" in client.get("/").text
 
 
+def test_naglowek_pokazuje_znak_aplikacji_i_logo_firmy():
+    """Ten sam ptaszek co na ikonie — użytkownik ma widzieć, w czym jest."""
+    body = client.get("/").text
+    assert "/static/icon-mark.png" in body    # znak aplikacji
+    assert 'class="logo"' in body             # wordmark WUWER
+    assert client.get("/static/icon-mark.png").status_code == 200
+
+
 def test_report_wymaga_krotkiego_opisu():
     resp = client.post("/report", data={"shortDesc": "   "})
     assert resp.status_code == 400
