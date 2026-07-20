@@ -1,10 +1,32 @@
 # Karta niezgodności — WebApp (PWA)
 
-Formularz zgłaszania niezgodności dla WUWER. Zastępuje aplikację androidową
-(`../app/`), zachowując jej zachowanie wobec GoodDay. Jedna strona, dark theme,
-mobile-first, instalowalna jako PWA na tablecie na hali.
+Formularz zgłaszania niezgodności dla WUWER. Zastępuje aplikację mobilną,
+zachowując jej zachowanie wobec GoodDay. Jedna strona, dark theme, mobile-first,
+instalowalna jako PWA na tablecie na hali.
 
-**Aplikacja androidowa zostaje w repo** i jest odtwarzalna: `git checkout android-legacy-v1`.
+## Powrót do wersji z tabletu
+
+**Aplikacją z tabletu jest projekt Flutter, a nie kod z `../app/`:**
+
+```
+https://github.com/P-Kupiec/IssueReportApp
+gałąź:  builtInCamera        (7 commitów przed master, zawiera całego mastera)
+commit: 1eb9433              (2024-11-06)
+```
+
+Ta wersja ma wbudowany aparat, obsługę wielu zdjęć i autokorektę formularza.
+`master` w tamtym repo jest starszy (2024-07-26).
+
+Kod Kotlin w `../app/` (tag `legacy-kotlin-prototype`) to **wcześniejszy
+prototyp, nie wersja produkcyjna** — najprawdopodobniej nawet się nie
+kompiluje: `MainActivity.kt` woła `uploadImagesToImgur()` bez argumentów,
+podczas gdy funkcja wymaga `photoUri: Uri`. Zostaje w repo dla historii.
+
+> Tag `android-legacy-v1` wskazuje ten sam prototyp i ma **mylącą nazwę** —
+> używaj `legacy-kotlin-prototype`.
+
+Uwaga na zależność: fallback leży w cudzym repozytorium (P-Kupiec). Jeśli ma
+być trwałą gwarancją, warto zrobić kopię pod kontrolą WUWER.
 
 ## Stack
 
