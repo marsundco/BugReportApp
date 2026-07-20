@@ -13,75 +13,95 @@
   <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
 </head>
 <body>
-  <header class="header">
-    <div class="brand">
+  <!-- Pasek marki: wyłącznie logo firmy, wyrównane do lewej krawędzi kolumny
+       treści. Wszystko poniżej trzyma się tej samej krawędzi — to jedyny
+       powód, dla którego układ przestaje wyglądać na przypadkowy. -->
+  <header class="appbar">
+    <div class="appbar-inner">
       <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
-    </div>
-    <!-- Znak aplikacji obok tytułu: ten sam ptaszek co na ikonie na ekranie
-         głównym, żeby po otwarciu było widać, w KTÓREJ aplikacji się jest.
-         alt="" bo to powtórzenie tytułu obok — czytnik ekranu ma przeczytać
-         nagłówek raz, nie dwa razy. -->
-    <div class="app-id">
-      <img class="app-mark" src="/static/icon-mark.png" alt="" width="44" height="44">
-      <h1>Karta niezgodności</h1>
+      <!-- Znak aplikacji po przeciwnej stronie paska: ten sam ptaszek co na
+           ikonie na ekranie głównym. Tu, a nie przy tytule — inaczej spycha
+           tytuł w prawo i ten przestaje trzymać wspólną lewą krawędź z kartą.
+           alt="" bo tytuł strony niesie tę samą treść. -->
+      <img class="app-mark" src="/static/icon-mark.png" alt="" width="30" height="30">
     </div>
   </header>
 
   <main class="wrap">
+    <div class="page-head">
+      <h1>Karta niezgodności</h1>
+      <p class="lead">Zgłoszenie trafia prosto na tablicę GoodDay.</p>
+    </div>
+
     <form id="report-form" class="card" novalidate>
-      <div class="field">
-        <label for="shortDesc">Jaka niezgodnośc postąpiła? <span class="req" aria-hidden="true">*</span></label>
-        <input type="text" id="shortDesc" name="shortDesc" required
-               autocomplete="off" enterkeyhint="next">
-      </div>
+      <!-- Grupa 1: co się stało. Najpierw treść zgłoszenia, bo po to
+           operator otwiera aplikację. -->
+      <section class="group">
+        <h2 class="group-title">Niezgodność</h2>
 
-      <div class="row">
         <div class="field">
-          <label for="projectName">Numer Projektu</label>
-          <input type="text" id="projectName" name="projectName" autocomplete="off">
+          <label for="shortDesc">Jaka niezgodnośc postąpiła? <span class="req" aria-hidden="true">*</span></label>
+          <input type="text" id="shortDesc" name="shortDesc" required
+                 autocomplete="off" enterkeyhint="next">
         </div>
+
         <div class="field">
-          <label for="productId">ID Produktu / Numer Rysunku</label>
-          <input type="text" id="productId" name="productId" autocomplete="off">
+          <label for="detailedDesc">Napisz opis problemu.</label>
+          <textarea id="detailedDesc" name="detailedDesc" rows="5"></textarea>
         </div>
+
+        {% if photo_enabled %}
+        <div class="field">
+          <span class="label-static">Zdjęcia <span class="hint" id="photo-count"></span></span>
+          <!-- capture="environment" otwiera tylny aparat na tablecie/telefonie,
+               a na desktopie degraduje się do zwykłego wyboru pliku.
+               multiple pozwala dobrać kilka plików naraz z galerii; kolejne
+               zdjęcia z aparatu DOKŁADAJĄ się do listy (patrz app.js). -->
+          <input type="file" id="photo" name="photo" accept="image/*"
+                 capture="environment" multiple hidden>
+          <label for="photo" class="btn btn-ghost" id="photo-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="ico">
+              <path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linejoin="round"/>
+              <circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <span>Add Photo</span>
+          </label>
+
+          <ul id="gallery" class="gallery" hidden></ul>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- Grupa 2: gdzie i kto. Pola porządkowe — wypełniane po opisaniu wady,
+           a numer projektu i numer rysunku stoją obok siebie, bo zwykle
+           przepisuje się je z tego samego dokumentu. -->
+      <section class="group">
+        <h2 class="group-title">Identyfikacja</h2>
+
+        <div class="row">
+          <div class="field">
+            <label for="projectName">Numer Projektu</label>
+            <input type="text" id="projectName" name="projectName" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="productId">ID Produktu / Numer Rysunku</label>
+            <input type="text" id="productId" name="productId" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="reporterName">Imie i nazwisko</label>
+          <input type="text" id="reporterName" name="reporterName" autocomplete="name">
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span class="lbl-idle">Zgłoś karte</span>
+          <span class="lbl-busy">Wysyłam…</span>
+        </button>
       </div>
-
-      <div class="field">
-        <label for="detailedDesc">Napisz opis problemu.</label>
-        <textarea id="detailedDesc" name="detailedDesc" rows="5"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="reporterName">Imie i nazwisko</label>
-        <input type="text" id="reporterName" name="reporterName" autocomplete="name">
-      </div>
-
-      {% if photo_enabled %}
-      <div class="field">
-        <span class="label-static">Zdjęcia <span class="hint" id="photo-count"></span></span>
-        <!-- capture="environment" otwiera tylny aparat na tablecie/telefonie,
-             a na desktopie degraduje się do zwykłego wyboru pliku.
-             multiple pozwala dobrać kilka plików naraz z galerii; kolejne
-             zdjęcia z aparatu DOKŁADAJĄ się do listy (patrz app.js). -->
-        <input type="file" id="photo" name="photo" accept="image/*"
-               capture="environment" multiple hidden>
-        <label for="photo" class="btn btn-ghost" id="photo-btn">
-          <svg viewBox="0 0 24 24" aria-hidden="true" class="ico">
-            <path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor"
-                  stroke-width="1.8" stroke-linejoin="round"/>
-            <circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-          </svg>
-          <span>Add Photo</span>
-        </label>
-
-        <ul id="gallery" class="gallery" hidden></ul>
-      </div>
-      {% endif %}
-
-      <button type="submit" class="btn btn-primary" id="submit-btn">
-        <span class="lbl-idle">Zgłoś karte</span>
-        <span class="lbl-busy">Wysyłam…</span>
-      </button>
     </form>
   </main>
 

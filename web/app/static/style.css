@@ -30,8 +30,16 @@
   --radius: 12px;
   --radius-sm: 9px;
   /* Pola pełnej szerokości, ale nie rozjeżdżają się na tablecie/desktopie.
-     To jest wprost lekarstwo na sztywne 400dp z wersji androidowej. */
-  --max-w: 720px;
+     To jest wprost lekarstwo na sztywne 400dp z wersji androidowej.
+     640px: formularz jednokolumnowy szerszy niż to robi się nieprzyjemny
+     w czytaniu (wiersz staje się za długi dla oka). */
+  --max-w: 640px;
+  --gutter: 16px;      /* wspólny margines boczny paska, tytułu i karty */
+  --card-pad: 18px;
+}
+
+@media (min-width: 560px) {
+  :root { --gutter: 24px; --card-pad: 24px; }
 }
 
 * { box-sizing: border-box; }
@@ -56,73 +64,109 @@ body {
            env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-/* ---------- Nagłówek ---------- */
+/* ---------- Pasek marki ---------- */
 
-.header {
+/* Cienki pasek z samym logo. Nie konkuruje z tytułem strony — mówi tylko
+   CZYJA to aplikacja. Wysokość celowo mała, bo na tablecie każdy piksel nad
+   formularzem to piksel mniej na treść. */
+.appbar {
   border-bottom: 1px solid var(--border);
-  padding: 18px 20px 16px;
-  text-align: center;
-  background:
-    radial-gradient(120% 140% at 50% 0%, rgba(0, 54, 107, 0.55) 0%, transparent 70%),
-    var(--bg);
+  background: var(--bg-elev);
+}
+
+.appbar-inner {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 11px var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   /* logo do lewej, znak aplikacji do prawej */
+  gap: 12px;
 }
 
 /* Logo tintowane techniką maski (jak w LDMB): kształt bierzemy z alfy PNG,
-   a wypełniamy zmienną motywu. Dzięki temu wordmark jest MONOCHROMATYCZNY
-   z definicji — nie trzeba utrzymywać osobnego pliku w innym kolorze. */
-.brand .logo {
+   a wypełniamy zmienną motywu. Wordmark jest MONOCHROMATYCZNY z definicji.
+   Kolor szary, nie żółty: żółć zostaje zarezerwowana dla rzeczy, które coś
+   robią (akcja, fokus, pole wymagane). */
+.logo {
   display: block;
-  margin: 0 auto;
-  height: 34px;
-  width: 100%;
-  max-width: 190px;
-  background-color: var(--accent);
-  -webkit-mask: url(/static/logo-white.png) center / contain no-repeat;
-          mask: url(/static/logo-white.png) center / contain no-repeat;
-}
-
-/* Znak aplikacji + tytuł jako jeden blok. Na wąskim ekranie znak zjeżdża do
-   rozmiaru tytułu, żeby nie zjadał wysokości nad formularzem. */
-.app-id {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.app-mark {
-  width: clamp(32px, 8vw, 44px);
-  height: auto;
-  flex: none;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: clamp(22px, 5.5vw, 30px);
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  width: 132px;
+  height: 26px;
+  background-color: var(--text-dim);
+  -webkit-mask: url(/static/logo-white.png) left center / contain no-repeat;
+          mask: url(/static/logo-white.png) left center / contain no-repeat;
 }
 
 /* ---------- Układ ---------- */
 
+/* JEDNA kolumna treści. Pasek marki, tytuł i formularz dzielą tę samą
+   szerokość i tę samą lewą krawędź — bez tego układ rozjeżdża się wizualnie
+   na trzy różne osie (wyśrodkowane logo, wyśrodkowany tytuł, lewe pola). */
 .wrap {
   flex: 1 1 auto;
   width: 100%;
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 22px var(--gutter) 48px;
+}
+
+/* Nagłówek strony: tytuł + jedno zdanie kontekstu. Bez ikony obok — tytuł ma
+   zaczynać się dokładnie tam, gdzie zaczyna się karta poniżej. */
+.page-head { margin-bottom: 18px; }
+
+.app-mark {
+  width: 30px;
+  height: auto;
+  flex: none;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: clamp(21px, 5.2vw, 27px);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+}
+
+.lead {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .card {
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px 18px 22px;
+  padding: 4px var(--card-pad) var(--card-pad);
+}
+
+/* ---------- Grupy pól ---------- */
+
+/* Pięć pól w jednym ciągu czyta się jak lista bez znaczenia. Dwie nazwane
+   grupy dają odpowiedź na „co tu w ogóle wpisuję": najpierw sama wada,
+   potem dane porządkowe. */
+.group {
+  padding: 18px 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
+
+.group + .group { border-top: 1px solid var(--border); }
+
+.group-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--text-muted);
+}
+
+.actions { padding-top: 18px; border-top: 1px solid var(--border); }
 
 /* Dwa pola obok siebie dopiero gdy jest na to miejsce — mobile-first.
    Poniżej 560px wszystko układa się w jedną kolumnę, pełna szerokość. */
