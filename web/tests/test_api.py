@@ -64,6 +64,10 @@ def test_pole_zdjecia_uzywa_aparatu_tylnego():
     assert 'capture="environment"' in body
 
 
+def test_pole_zdjecia_pozwala_na_wiele_plikow():
+    assert "multiple" in client.get("/").text
+
+
 def test_report_wymaga_krotkiego_opisu():
     resp = client.post("/report", data={"shortDesc": "   "})
     assert resp.status_code == 400
@@ -94,6 +98,37 @@ def test_report_przekazuje_link_do_zdjecia(monkeypatch):
     monkeypatch.setattr(goodday, "submit_report", fake_submit)
     client.post("/report", data={"shortDesc": "x", "imageLink": "https://i.imgur.com/a.png"})
     assert captured["image_links"] == ["https://i.imgur.com/a.png"]
+
+
+def test_report_przekazuje_wiele_zdjec(monkeypatch):
+    """Kilka linków przychodzi jako jedno pole, po jednym w linii."""
+    captured = {}
+
+    def fake_submit(**kwargs):
+        captured.update(kwargs)
+        return {"taskId": "T1", "shortId": "9", "warnings": []}
+
+    monkeypatch.setattr(goodday, "submit_report", fake_submit)
+    client.post("/report", data={
+        "shortDesc": "x",
+        "imageLink": "https://i.imgur.com/a.png\nhttps://i.imgur.com/b.png",
+    })
+    assert captured["image_links"] == [
+        "https://i.imgur.com/a.png",
+        "https://i.imgur.com/b.png",
+    ]
+
+
+def test_report_ignoruje_puste_linie_w_linkach(monkeypatch):
+    captured = {}
+
+    def fake_submit(**kwargs):
+        captured.update(kwargs)
+        return {"taskId": "T1", "shortId": "9", "warnings": []}
+
+    monkeypatch.setattr(goodday, "submit_report", fake_submit)
+    client.post("/report", data={"shortDesc": "x", "imageLink": "\n\n"})
+    assert captured["image_links"] == []
 
 
 def test_report_blad_goodday_to_502(monkeypatch):

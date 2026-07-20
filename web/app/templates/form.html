@@ -51,11 +51,13 @@
 
       {% if photo_enabled %}
       <div class="field">
-        <span class="label-static">Zdjęcie</span>
+        <span class="label-static">Zdjęcia <span class="hint" id="photo-count"></span></span>
         <!-- capture="environment" otwiera tylny aparat na tablecie/telefonie,
-             a na desktopie degraduje się do zwykłego wyboru pliku. -->
+             a na desktopie degraduje się do zwykłego wyboru pliku.
+             multiple pozwala dobrać kilka plików naraz z galerii; kolejne
+             zdjęcia z aparatu DOKŁADAJĄ się do listy (patrz app.js). -->
         <input type="file" id="photo" name="photo" accept="image/*"
-               capture="environment" hidden>
+               capture="environment" multiple hidden>
         <label for="photo" class="btn btn-ghost" id="photo-btn">
           <svg viewBox="0 0 24 24" aria-hidden="true" class="ico">
             <path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor"
@@ -65,11 +67,7 @@
           <span>Add Photo</span>
         </label>
 
-        <div id="preview" class="preview" hidden>
-          <img id="preview-img" alt="Podgląd zdjęcia">
-          <button type="button" class="preview-remove" id="preview-remove"
-                  aria-label="Usuń zdjęcie">×</button>
-        </div>
+        <ul id="gallery" class="gallery" hidden></ul>
       </div>
       {% endif %}
 

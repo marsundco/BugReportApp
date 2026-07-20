@@ -102,6 +102,25 @@ def test_link_do_zdjecia_doklejany_do_opisu(calls):
     assert message == "Otwory nie pasują.\nhttps://i.imgur.com/a.png"
 
 
+def test_wiele_zdjec_kazde_w_osobnej_linii(calls):
+    _submit(image_links=[
+        "https://i.imgur.com/a.png",
+        "https://i.imgur.com/b.png",
+        "https://i.imgur.com/c.png",
+    ])
+    assert calls[0][2]["message"] == (
+        "Otwory nie pasują.\n"
+        "https://i.imgur.com/a.png\n"
+        "https://i.imgur.com/b.png\n"
+        "https://i.imgur.com/c.png"
+    )
+
+
+def test_same_zdjecia_bez_opisu_nie_daja_wiodacej_pustej_linii(calls):
+    _submit(detailed_desc="", image_links=["https://i.imgur.com/a.png"])
+    assert calls[0][2]["message"] == "https://i.imgur.com/a.png"
+
+
 def test_bez_zdjecia_opis_bez_pustej_linii(calls):
     _submit()
     assert calls[0][2]["message"] == "Otwory nie pasują."
