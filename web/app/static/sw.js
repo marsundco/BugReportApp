@@ -3,12 +3,16 @@
    cichy retry po godzinach byłby gorszy niż jawny błąd (duplikaty kart, zgłoszenie
    „znikające" na kilka godzin). Cache służy wyłącznie szybkiemu startowi. */
 
-const CACHE = "karta-shell-v1";
+// Wersję PODBIJ przy każdej zmianie listy poniżej — inaczej urządzenia zostaną
+// przy starym cache i nie pobiorą nowych plików.
+const CACHE = "karta-shell-v2";
 const SHELL = [
   "/",
   "/static/style.css",
   "/static/app.js",
   "/static/logo-white.png",
+  "/static/icon-mark.svg",   // maska znaku w pasku nagłówka
+  "/static/icon.svg",        // favicon / kafel
   "/static/icon-192.png",
   "/static/icon-512.png",
 ];

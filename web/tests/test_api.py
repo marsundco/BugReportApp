@@ -86,9 +86,33 @@ def test_pole_zdjecia_pozwala_na_wiele_plikow():
 def test_naglowek_pokazuje_znak_aplikacji_i_logo_firmy():
     """Ten sam ptaszek co na ikonie — użytkownik ma widzieć, w czym jest."""
     body = client.get("/").text
-    assert "/static/icon-mark.png" in body    # znak aplikacji
-    assert 'class="logo"' in body             # wordmark WUWER
-    assert client.get("/static/icon-mark.png").status_code == 200
+    assert 'class="app-mark"' in body   # znak aplikacji (maska CSS)
+    assert 'class="logo"' in body       # wordmark WUWER
+    assert client.get("/static/icon-mark.svg").status_code == 200
+
+
+def test_znak_stoi_wewnatrz_naglowka():
+    """Tylko element liniowy w <h1> siada na linii pisma i równa się z „K".
+
+    Ustawiony obok nagłówka wisiał 2–3 px za wysoko — przy znaku wysokim na
+    11 px to widać gołym okiem.
+    """
+    body = client.get("/").text
+    assert '<h1><span class="app-mark"' in body
+
+
+def test_znak_ma_wysokosc_wersalika():
+    """Reguła twarda: wysokość znaku = 1cap, czyli wysokość wielkiej litery."""
+    css = client.get("/static/style.css").text
+    assert "height: 1cap;" in css
+    assert "height: 0.72em;" in css   # zapas dla przeglądarek bez jednostki cap
+
+
+def test_favicon_i_kafel_maja_zaokraglone_tlo():
+    """Bez kafla znak ginie na jasnym tle zakładki przeglądarki."""
+    svg = client.get("/static/icon.svg").text
+    assert "<rect" in svg and "rx=" in svg
+    assert client.get("/static/icon.svg").status_code == 200
 
 
 def test_report_wymaga_krotkiego_opisu():

@@ -6,7 +6,10 @@
   <title>Karta niezgodności — WUWER</title>
   <meta name="theme-color" content="#0b1220">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/static/icon-192.png">
+  <!-- SVG dla przeglądarek, PNG jako zapas. Oba mają kafel z zaokrąglonymi
+       rogami — bez niego znak ginie na jasnym tle zakładki. -->
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="/static/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,12 +28,12 @@
            informacja na ekranie i trzyma wspólną krawędź z formularzem.
            Marka firmy idzie na prawy koniec paska: mówi „czyja to aplikacja",
            czyli jest podpisem, a nie tytułem.
-           alt="" przy znaku, bo nazwa obok niesie tę samą treść (czytnik
-           ekranu ma przeczytać ją raz). -->
-      <div class="app-id">
-        <img class="app-mark" src="/static/icon-mark.png" alt="" width="26" height="26">
-        <h1>Karta niezgodności</h1>
-      </div>
+
+           Znak siedzi WEWNĄTRZ nagłówka, nie obok niego: tylko element liniowy
+           siada na linii pisma i zrównuje się z wersalikiem nazwy. Ustawiony
+           jako sąsiad we flexie wisiał o 2–3 px za wysoko.
+           aria-hidden, bo nazwa obok niesie tę samą treść. -->
+      <h1><span class="app-mark" aria-hidden="true"></span>Karta niezgodności</h1>
       <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
     </div>
   </header>

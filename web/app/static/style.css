@@ -95,7 +95,10 @@ body {
    robią (akcja, fokus, pole wymagane). */
 .logo {
   display: block;
-  height: clamp(19px, 5.2vw, 24px);
+  /* Same litery „WUWER" zajmują tylko 43 % wysokości pliku (reszta to paski,
+     tagline i marginesy), więc boks musi być wyraźnie wyższy od tekstu obok,
+     żeby wordmark był w ogóle czytelny. Przy 20 px litery miały 6 px. */
+  height: clamp(26px, 7vw, 30px);
   /* Szerokość Z proporcji pliku, nie z osobnego clamp — inaczej `contain`
      wpisuje wordmark w za szerokie pudełko i zostaje martwy odstęp przed
      tytułem (wygląda jak przypadkowa dziura w nagłówku). */
@@ -108,17 +111,9 @@ body {
           mask: url(/static/logo-white.png) left center / contain no-repeat;
 }
 
-/* Znak + nazwa jako jedna całość, przy lewej krawędzi. Kreska nie jest już
-   potrzebna: logo stoi po przeciwnej stronie paska, więc nic się nie zlewa. */
-.app-id {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-}
-
-.app-id h1 {
+.appbar h1 {
   margin: 0;
+  min-width: 0;
   font-size: clamp(15px, 4.3vw, 19px);
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -126,6 +121,21 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Znak aplikacji jako pierwsza „litera" nazwy: siada na linii pisma i ma
+   dokładnie wysokość wersalika, więc równa się z „K" w „Karta". Kolor bierze
+   z tokenu, kształt z alfy pliku — podmiana znaku to podmiana jednego pliku. */
+.app-mark {
+  display: inline-block;
+  vertical-align: baseline;
+  height: 0.72em;          /* zapas dla przeglądarek bez jednostki cap */
+  height: 1cap;            /* dokładna wysokość wersalika */
+  aspect-ratio: 1 / 1;     /* Z PROPORCJI PLIKU (znak jest kwadratowy) */
+  margin-right: 0.42em;
+  background-color: var(--accent);
+  -webkit-mask: url(/static/icon-mark.svg) center / contain no-repeat;
+          mask: url(/static/icon-mark.svg) center / contain no-repeat;
 }
 
 /* ---------- Układ ---------- */
@@ -140,13 +150,6 @@ body {
   margin: 0 auto;
   padding: 16px var(--gutter) 40px;
 }
-
-.app-mark {
-  width: clamp(24px, 6.5vw, 26px);
-  height: auto;
-  flex: none;
-}
-
 
 .card {
   background: var(--bg-elev);
