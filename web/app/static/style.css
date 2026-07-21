@@ -85,14 +85,6 @@ body {
   gap: 12px;
 }
 
-/* Logo + nazwa aplikacji w jednym wierszu (wzorzec z LDMB). */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-}
-
 /* Logo tintowane techniką maski (jak w LDMB): kształt bierzemy z alfy PNG,
    a wypełniamy zmienną motywu. Wordmark jest MONOCHROMATYCZNY z definicji.
    Kolor szary, nie żółty: żółć zostaje zarezerwowana dla rzeczy, które coś
@@ -105,23 +97,23 @@ body {
      tytułem (wygląda jak przypadkowa dziura w nagłówku). */
   aspect-ratio: 2868 / 1386;
   flex: none;
-  background-color: var(--text-dim);
+  /* Przygaszone: logo jest teraz podpisem, nie tytułem — nie powinno
+     przeciągać wzroku z nazwy aplikacji po lewej. */
+  background-color: var(--text-muted);
   -webkit-mask: url(/static/logo-white.png) left center / contain no-repeat;
           mask: url(/static/logo-white.png) left center / contain no-repeat;
 }
 
-/* Znak + nazwa jako jedna całość. Kreska oddziela markę firmy od tożsamości
-   aplikacji — bez niej wszystko zlewa się w jeden ciąg. */
+/* Znak + nazwa jako jedna całość, przy lewej krawędzi. Kreska nie jest już
+   potrzebna: logo stoi po przeciwnej stronie paska, więc nic się nie zlewa. */
 .app-id {
   display: flex;
   align-items: center;
   gap: 9px;
   min-width: 0;
-  padding-left: 11px;
-  border-left: 1px solid var(--border-strong);
 }
 
-.brand h1 {
+.app-id h1 {
   margin: 0;
   font-size: clamp(15px, 4.3vw, 19px);
   font-weight: 600;
@@ -151,14 +143,6 @@ body {
   flex: none;
 }
 
-/* Na bardzo wąskich ekranach (< 360 px) nazwa aplikacji zmieściłaby się co do
-   piksela — jedna inna szerokość glifu i tytuł zostaje przycięty. Znak jest
-   dekoracyjny (alt=""), więc ustępuje pierwszy: nazwa niesie tę samą
-   informację i musi pozostać czytelna w całości. */
-@media (max-width: 359px) {
-  .app-mark { display: none; }
-  .app-id { gap: 0; }
-}
 
 .card {
   background: var(--bg-elev);
