@@ -85,17 +85,44 @@ body {
   gap: 12px;
 }
 
+/* Logo + nazwa aplikacji w jednym wierszu (wzorzec z LDMB). */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
 /* Logo tintowane techniką maski (jak w LDMB): kształt bierzemy z alfy PNG,
    a wypełniamy zmienną motywu. Wordmark jest MONOCHROMATYCZNY z definicji.
    Kolor szary, nie żółty: żółć zostaje zarezerwowana dla rzeczy, które coś
    robią (akcja, fokus, pole wymagane). */
 .logo {
   display: block;
-  width: 132px;
-  height: 26px;
+  height: clamp(19px, 5.2vw, 24px);
+  /* Szerokość Z proporcji pliku, nie z osobnego clamp — inaczej `contain`
+     wpisuje wordmark w za szerokie pudełko i zostaje martwy odstęp przed
+     tytułem (wygląda jak przypadkowa dziura w nagłówku). */
+  aspect-ratio: 2868 / 1386;
+  flex: none;
   background-color: var(--text-dim);
   -webkit-mask: url(/static/logo-white.png) left center / contain no-repeat;
           mask: url(/static/logo-white.png) left center / contain no-repeat;
+}
+
+/* Kreska oddziela markę firmy od nazwy aplikacji — bez niej logo i tytuł
+   zlewają się w jeden ciąg znaków. */
+.brand h1 {
+  margin: 0;
+  padding-left: 11px;
+  border-left: 1px solid var(--border-strong);
+  font-size: clamp(15px, 4.3vw, 19px);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Układ ---------- */
@@ -108,32 +135,13 @@ body {
   width: 100%;
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 22px var(--gutter) 48px;
+  padding: 16px var(--gutter) 40px;
 }
-
-/* Nagłówek strony: tytuł + jedno zdanie kontekstu. Bez ikony obok — tytuł ma
-   zaczynać się dokładnie tam, gdzie zaczyna się karta poniżej. */
-.page-head { margin-bottom: 18px; }
 
 .app-mark {
-  width: 30px;
+  width: clamp(24px, 6.5vw, 28px);
   height: auto;
   flex: none;
-}
-
-.page-head h1 {
-  margin: 0;
-  font-size: clamp(21px, 5.2vw, 27px);
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  line-height: 1.15;
-}
-
-.lead {
-  margin: 3px 0 0;
-  font-size: 13.5px;
-  color: var(--text-muted);
-  line-height: 1.35;
 }
 
 .card {

@@ -16,23 +16,22 @@
   <!-- Pasek marki: wyłącznie logo firmy, wyrównane do lewej krawędzi kolumny
        treści. Wszystko poniżej trzyma się tej samej krawędzi — to jedyny
        powód, dla którego układ przestaje wyglądać na przypadkowy. -->
+  <!-- Pasek marki jak w LDMB: logo i nazwa aplikacji obok siebie w jednej
+       linii. Cały nagłówek to jeden wiersz — na tablecie każdy piksel nad
+       formularzem to piksel mniej na treść. -->
   <header class="appbar">
     <div class="appbar-inner">
-      <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
+      <div class="brand">
+        <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
+        <h1>Karta niezgodności</h1>
+      </div>
       <!-- Znak aplikacji po przeciwnej stronie paska: ten sam ptaszek co na
-           ikonie na ekranie głównym. Tu, a nie przy tytule — inaczej spycha
-           tytuł w prawo i ten przestaje trzymać wspólną lewą krawędź z kartą.
-           alt="" bo tytuł strony niesie tę samą treść. -->
-      <img class="app-mark" src="/static/icon-mark.png" alt="" width="30" height="30">
+           ikonie na ekranie głównym. alt="" bo tytuł obok niesie tę samą treść. -->
+      <img class="app-mark" src="/static/icon-mark.png" alt="" width="28" height="28">
     </div>
   </header>
 
   <main class="wrap">
-    <div class="page-head">
-      <h1>Karta niezgodności</h1>
-      <p class="lead">Zgłoszenie trafia prosto na tablicę GoodDay.</p>
-    </div>
-
     <form id="report-form" class="card" novalidate>
       <!-- Grupa 1: co się stało. Najpierw treść zgłoszenia, bo po to
            operator otwiera aplikację. -->
