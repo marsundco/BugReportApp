@@ -102,10 +102,24 @@ def test_znak_stoi_wewnatrz_naglowka():
 
 
 def test_znak_ma_wysokosc_wersalika():
-    """Reguła twarda: wysokość znaku = 1cap, czyli wysokość wielkiej litery."""
+    """Reguła twarda: znak równa się optycznie z wielką literą nazwy.
+
+    1.2cap, nie 1cap: przy równych 1cap znak MIERZY tyle co wersalik, ale
+    wygląda na mniejszy — okrąg dotyka linii wersalika w jednym punkcie.
+    """
     css = client.get("/static/style.css").text
-    assert "height: 1cap;" in css
-    assert "height: 0.72em;" in css   # zapas dla przeglądarek bez jednostki cap
+    assert "height: 1.2cap;" in css
+    assert "height: 0.86em;" in css   # zapas dla przeglądarek bez jednostki cap
+
+
+def test_znak_na_kaflu_ma_margines():
+    """Znak nie może dotykać krawędzi kafla — SVG musi skalować go do środka.
+
+    Regresja: pierwsza wersja icon.svg rysowała znak na całym viewBoksie,
+    więc favicon wyglądał zupełnie inaczej niż kafel PNG.
+    """
+    svg = client.get("/static/icon.svg").text
+    assert "scale(0.68)" in svg
 
 
 def test_favicon_i_kafel_maja_zaokraglone_tlo():

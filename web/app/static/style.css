@@ -123,16 +123,23 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Znak aplikacji jako pierwsza „litera" nazwy: siada na linii pisma i ma
-   dokładnie wysokość wersalika, więc równa się z „K" w „Karta". Kolor bierze
-   z tokenu, kształt z alfy pliku — podmiana znaku to podmiana jednego pliku. */
+/* Znak aplikacji jako pierwsza „litera" nazwy: siada na linii pisma i równa
+   się optycznie z „K" w „Karta". Kolor bierze z tokenu, kształt z alfy pliku —
+   podmiana znaku to podmiana jednego pliku.
+
+   Dlaczego 1.2cap, a nie 1cap: przy równych 1cap znak MIERZY tyle co wersalik
+   (sprawdzone: tusz wypełnia boks w 100 %), ale WYGLĄDA na mniejszy. Okrąg
+   dotyka linii wersalika w jednym punkcie, podczas gdy „K" stoi na niej całą
+   szerokością, a cienki pierścień czyta się lżej niż pełna litera. To ten sam
+   nadmiar, który w krojach pisma dostają „O" i „C". Wartość dobrana przez
+   porównanie 1.0 / 1.1 / 1.2 / 1.3 obok wersalika. */
 .app-mark {
   display: inline-block;
   vertical-align: baseline;
-  height: 0.72em;          /* zapas dla przeglądarek bez jednostki cap */
-  height: 1cap;            /* dokładna wysokość wersalika */
+  height: 0.86em;          /* zapas dla przeglądarek bez jednostki cap */
+  height: 1.2cap;          /* wysokość wersalika + nadmiar optyczny */
   aspect-ratio: 1 / 1;     /* Z PROPORCJI PLIKU (znak jest kwadratowy) */
-  margin-right: 0.42em;
+  margin-right: 0.38em;
   background-color: var(--accent);
   -webkit-mask: url(/static/icon-mark.svg) center / contain no-repeat;
           mask: url(/static/icon-mark.svg) center / contain no-repeat;

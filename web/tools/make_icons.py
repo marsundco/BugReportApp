@@ -37,6 +37,14 @@ CHECK = [(21.6, 49.8), (40.2, 68.0), (73.0, 35.0)]   # lewy koniec, wierzchołek
 # renderuje się w kilku rozmiarach naraz.
 TILE_RADIUS = 0.22
 
+# Jaką część kafla zajmuje znak. JEDNA wartość dla SVG i PNG — wcześniej SVG
+# rysował znak na całym viewBoksie (0–100), więc favicon nie miał marginesu
+# i wyglądał zupełnie inaczej niż kafel PNG.
+MARK_FRAC = 0.68
+# Maskable: Android przycina kafel do koła, więc znak musi zmieścić się
+# w bezpiecznym polu ok. 80 % boku.
+MARK_FRAC_MASKABLE = 0.50
+
 
 def _svg(body: str, size: int = 100) -> str:
     # width/height obok viewBox: bez rozmiaru naturalnego część narzędzi
@@ -47,15 +55,20 @@ def _svg(body: str, size: int = 100) -> str:
     )
 
 
-def _mark_paths(color: str) -> str:
+def _mark_paths(color: str, frac: float = 1.0) -> str:
+    """Znak w układzie 100 x 100. `frac` < 1 zmniejsza go i centruje (margines)."""
     pts = " ".join(f"{x},{y}" for x, y in CHECK)
-    return (
+    body = (
         f'  <circle cx="50" cy="50" r="{RING_R:g}" fill="none" '
         f'stroke="{color}" stroke-width="{RING_STROKE:g}"/>\n'
         f'  <polyline points="{pts}" fill="none" stroke="{color}" '
         f'stroke-width="{CHECK_STROKE:g}" stroke-linecap="round" '
         f'stroke-linejoin="round"/>\n'
     )
+    if frac >= 1.0:
+        return body
+    off = (100 - 100 * frac) / 2
+    return f'  <g transform="translate({off:g} {off:g}) scale({frac:g})">\n  {body}  </g>\n'
 
 
 def build_svgs() -> None:
@@ -78,7 +91,8 @@ def build_svgs() -> None:
     r = TILE_RADIUS * 100
     tile = (f'  <!-- Kafel w kolorze tla motywu, znak w kolorze accent. -->\n'
             f'  <rect width="100" height="100" rx="{r:g}" ry="{r:g}" fill="#0b1220"/>\n')
-    (STATIC / "icon.svg").write_text(_svg(tile + _mark_paths("#FFD966")), encoding="utf-8")
+    (STATIC / "icon.svg").write_text(
+        _svg(tile + _mark_paths("#FFD966", MARK_FRAC)), encoding="utf-8")
 
     print("  icon-mark.svg  (maska do paska)")
     print("  icon.svg       (kafel: favicon / PWA)")
@@ -122,10 +136,9 @@ def build_png(size: int, mark_frac: float, out: Path, rounded: bool) -> None:
 def main() -> None:
     print("Generuję znak i kafle:")
     build_svgs()
-    build_png(192, 0.62, STATIC / "icon-192.png", rounded=True)
-    build_png(512, 0.62, STATIC / "icon-512.png", rounded=True)
-    # Maskable: bezpieczne pole to ok. 80 % boku, stąd mniejszy udział znaku.
-    build_png(512, 0.50, STATIC / "icon-maskable-512.png", rounded=False)
+    build_png(192, MARK_FRAC, STATIC / "icon-192.png", rounded=True)
+    build_png(512, MARK_FRAC, STATIC / "icon-512.png", rounded=True)
+    build_png(512, MARK_FRAC_MASKABLE, STATIC / "icon-maskable-512.png", rounded=False)
 
 
 if __name__ == "__main__":
