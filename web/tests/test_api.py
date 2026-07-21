@@ -54,7 +54,7 @@ def test_formularz_ma_polskie_etykiety():
     body = client.get("/").text
     for label in ("Karta niezgodności", "Jaka niezgodnośc postąpiła?", "Numer Projektu",
                   "ID Produktu / Numer Rysunku", "Napisz opis problemu.",
-                  "Imie i nazwisko", "Add Photo", "Zgłoś karte"):
+                  "Imie i nazwisko", "Dodaj zdjęcie", "Zgłoś karte"):
         assert label in body
 
 
