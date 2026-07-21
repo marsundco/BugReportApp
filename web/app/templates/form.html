@@ -21,13 +21,19 @@
        formularzem to piksel mniej na treść. -->
   <header class="appbar">
     <div class="appbar-inner">
+      <!-- Po lewej marka firmy, po kresce tożsamość TEJ aplikacji: znak i nazwa
+           obok siebie. Ptaszek jest symbolem karty niezgodności, więc stoi
+           przy nazwie, a nie osobno na drugim końcu paska — samotny znak nie
+           odnosi się do niczego w pobliżu.
+           alt="" bo nazwa obok niesie tę samą treść (czytnik ekranu ma
+           przeczytać ją raz). -->
       <div class="brand">
         <span class="logo" role="img" aria-label="WUWER — conveying &amp; automation"></span>
-        <h1>Karta niezgodności</h1>
+        <span class="app-id">
+          <img class="app-mark" src="/static/icon-mark.png" alt="" width="26" height="26">
+          <h1>Karta niezgodności</h1>
+        </span>
       </div>
-      <!-- Znak aplikacji po przeciwnej stronie paska: ten sam ptaszek co na
-           ikonie na ekranie głównym. alt="" bo tytuł obok niesie tę samą treść. -->
-      <img class="app-mark" src="/static/icon-mark.png" alt="" width="28" height="28">
     </div>
   </header>
 

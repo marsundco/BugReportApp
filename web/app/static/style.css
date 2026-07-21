@@ -110,12 +110,19 @@ body {
           mask: url(/static/logo-white.png) left center / contain no-repeat;
 }
 
-/* Kreska oddziela markę firmy od nazwy aplikacji — bez niej logo i tytuł
-   zlewają się w jeden ciąg znaków. */
-.brand h1 {
-  margin: 0;
+/* Znak + nazwa jako jedna całość. Kreska oddziela markę firmy od tożsamości
+   aplikacji — bez niej wszystko zlewa się w jeden ciąg. */
+.app-id {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
   padding-left: 11px;
   border-left: 1px solid var(--border-strong);
+}
+
+.brand h1 {
+  margin: 0;
   font-size: clamp(15px, 4.3vw, 19px);
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -139,9 +146,18 @@ body {
 }
 
 .app-mark {
-  width: clamp(24px, 6.5vw, 28px);
+  width: clamp(24px, 6.5vw, 26px);
   height: auto;
   flex: none;
+}
+
+/* Na bardzo wąskich ekranach (< 360 px) nazwa aplikacji zmieściłaby się co do
+   piksela — jedna inna szerokość glifu i tytuł zostaje przycięty. Znak jest
+   dekoracyjny (alt=""), więc ustępuje pierwszy: nazwa niesie tę samą
+   informację i musi pozostać czytelna w całości. */
+@media (max-width: 359px) {
+  .app-mark { display: none; }
+  .app-id { gap: 0; }
 }
 
 .card {
