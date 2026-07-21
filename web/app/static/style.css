@@ -9,6 +9,10 @@
   --bg-input: #0e1729;
   --border: #22304a;
   --border-strong: #2f4064;
+  /* Obramowanie pola formularza — jaśniejsze od --border, bo pole jest
+     elementem interaktywnym i WCAG 1.4.11 wymaga dla niego 3:1 względem
+     tła. Zmierzone: 3.42 wzgl. --bg-elev (samo --border dawało 1.29). */
+  --border-field: #5a7099;
 
   /* Typografia */
   --text: #e6edf3;
@@ -206,7 +210,7 @@ textarea {
   width: 100%;
   background: var(--bg-input);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-field);
   border-radius: var(--radius-sm);
   padding: 12px 13px;
   /* 16px to minimum, przy którym iOS NIE zoomuje przy fokusie w pole. */
