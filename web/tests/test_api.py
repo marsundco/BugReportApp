@@ -52,10 +52,25 @@ def test_healthz_pokazuje_stan_ale_nie_wartosci():
 
 def test_formularz_ma_polskie_etykiety():
     body = client.get("/").text
-    for label in ("Karta niezgodności", "Jaka niezgodnośc postąpiła?", "Numer Projektu",
-                  "ID Produktu / Numer Rysunku", "Napisz opis problemu.",
-                  "Imie i nazwisko", "Dodaj zdjęcie", "Zgłoś karte"):
+    for label in ("Karta niezgodności", "Jaka niezgodność wystąpiła?", "Numer projektu",
+                  "ID produktu / numer rysunku", "Szczegółowy opis problemu",
+                  "Imię i nazwisko", "Dodaj zdjęcie", "Zgłoś kartę"):
         assert label in body
+
+
+def test_etykiety_nie_zawieraja_starych_bledow():
+    """Literówki odziedziczone po aplikacji androidowej — poprawione na życzenie.
+
+    Osobny test, bo to są dokładnie te ciągi, które łatwo wrócą przy kopiowaniu
+    starego kodu.
+    """
+    body = client.get("/").text
+    # Całe etykiety, nie fragmenty: „niezgodnośc" jest podciągiem poprawnego
+    # „niezgodności", więc sam fragment dawałby fałszywy alarm.
+    for stara in ("Jaka niezgodnośc postąpiła?", "Imie i nazwisko", "Zgłoś karte",
+                  "Numer Projektu", "ID Produktu / Numer Rysunku",
+                  "Napisz opis problemu."):
+        assert stara not in body
 
 
 def test_pole_zdjecia_uzywa_aparatu_tylnego():

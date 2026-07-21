@@ -22,6 +22,17 @@ const MAX_PHOTOS = 10;
 let photos = [];
 let nextPhotoId = 1;
 
+/* Polska odmiana po liczebniku: 1 zdjęcie, 2–4 zdjęcia, 5+ zdjęć.
+   Wyjątek na 12–14, które mimo końcówki 2–4 biorą formę „pięć". Bez tego
+   komunikat brzmi „5 zdjęcia" albo „1 zdjęć". */
+function odmiana(n, jeden, dwa, piec) {
+  if (n === 1) return jeden;
+  const koncowka = n % 10;
+  const dziesiatki = n % 100;
+  const jakDwa = koncowka >= 2 && koncowka <= 4 && !(dziesiatki >= 12 && dziesiatki <= 14);
+  return jakDwa ? dwa : piec;
+}
+
 let toastTimer;
 function toast(message, kind = "ok", ms = 5000) {
   clearTimeout(toastTimer);
@@ -49,7 +60,8 @@ if (photoInput) {
 
     const room = MAX_PHOTOS - photos.length;
     if (room <= 0) {
-      toast(`Można dodać maksymalnie ${MAX_PHOTOS} zdjęć.`, "err");
+      toast(`Można dodać maksymalnie ${MAX_PHOTOS} ` +
+            `${odmiana(MAX_PHOTOS, "zdjęcie", "zdjęcia", "zdjęć")}.`, "err");
       return;
     }
     if (chosen.length > room) {
@@ -191,10 +203,12 @@ form.addEventListener("submit", async (event) => {
   // Zdjęcia, których nie udało się wysłać, nie blokują zgłoszenia — ale
   // użytkownik musi wiedzieć, że karta pójdzie bez nich.
   const failed = photos.filter((p) => p.state === "err").length;
-  if (failed && !confirm(
-    `${failed} zdjęcie/zdjęcia nie zostały wysłane i nie trafią do zgłoszenia.\n\nWysłać kartę mimo to?`
-  )) {
-    return;
+  if (failed) {
+    // Liczba w nawiasie zamiast odmienianego rzeczownika — komunikat brzmi
+    // tak samo poprawnie dla 1, 2 i 5 zdjęć.
+    const pytanie = `Nie udało się wysłać wszystkich zdjęć (${failed}).\n` +
+                    `Karta zostanie wysłana bez nich.\n\nWysłać mimo to?`;
+    if (!confirm(pytanie)) return;
   }
 
   submitBtn.disabled = true;

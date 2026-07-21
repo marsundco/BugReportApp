@@ -56,21 +56,23 @@ async def upload(photo: UploadFile = File(...)):
     content = await photo.read()
 
     if not content:
-        return JSONResponse({"ok": False, "error": "Pusty plik."}, status_code=400)
+        return JSONResponse({"ok": False, "error": "Wybrany plik jest pusty."},
+                            status_code=400)
     if len(content) > config.MAX_UPLOAD_BYTES:
         return JSONResponse(
             {"ok": False, "error": f"Zdjęcie jest za duże (limit {config.MAX_UPLOAD_MB} MB)."},
             status_code=413,
         )
     if not (photo.content_type or "").startswith("image/"):
-        return JSONResponse({"ok": False, "error": "Plik nie jest obrazem."}, status_code=400)
+        return JSONResponse({"ok": False, "error": "Wybrany plik nie jest zdjęciem."},
+                            status_code=400)
 
     try:
         link = imgur.upload_image(photo.filename, content, photo.content_type)
     except imgur.ImgurError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
     except Exception:
-        logger.exception("Nieoczekiwany błąd uploadu.")
+        logger.exception("Nieoczekiwany błąd wysyłania zdjęcia.")
         return JSONResponse({"ok": False, "error": "Nie udało się wysłać zdjęcia."},
                             status_code=502)
 
@@ -89,7 +91,8 @@ async def report(
     """Utwórz zgłoszenie w GoodDay (zadanie + pola + status)."""
     if not config.goodday_configured():
         return JSONResponse(
-            {"ok": False, "error": "Serwer nie ma skonfigurowanego tokenu GoodDay."},
+            {"ok": False, "error": "Aplikacja nie jest poprawnie skonfigurowana. "
+                                   "Zgłoś to osobie odpowiedzialnej za aplikację."},
             status_code=503,
         )
     if not shortDesc.strip():

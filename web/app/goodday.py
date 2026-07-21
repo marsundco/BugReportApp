@@ -58,12 +58,14 @@ def create_task(title: str, message: str) -> dict:
     resp = _post("/2.0/tasks", payload)
     if not resp.ok:
         logger.error("Tworzenie zadania nieudane: %s %s", resp.status_code, resp.text[:500])
-        raise GoodDayError(f"GoodDay odrzucił zgłoszenie (HTTP {resp.status_code}).")
+        raise GoodDayError(f"Nie udało się wysłać zgłoszenia. Spróbuj ponownie "
+                           f"(błąd {resp.status_code}).")
 
     data = resp.json()
     task_id = (data or {}).get("id")
     if not task_id:
-        raise GoodDayError("GoodDay nie zwrócił ID utworzonego zadania.")
+        raise GoodDayError("Zgłoszenie mogło nie zostać zapisane. Sprawdź "
+                           "tablicę GoodDay przed ponowną wysyłką.")
     return data
 
 
