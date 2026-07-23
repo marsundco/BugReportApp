@@ -111,16 +111,17 @@ Wordmark jest monochromatyczny **z definicji**: kształt bierzemy z kanału alfa
 `logo-white.png` maską CSS, a wypełniamy zmienną motywu (ta sama technika co w
 LDMB). Zmiana koloru = zmiana jednej zmiennej, bez nowego pliku graficznego.
 
-**Ikona to żółty ptaszek w kole, nie logo firmy.** Ikona ma mówić, KTÓRA to
+**Ikona to żółty znak w kaflu, nie logo firmy.** Ikona ma mówić, KTÓRA to
 aplikacja — wordmark WUWER na kaflu przestanie cokolwiek odróżniać, gdy na
 tablecie wyląduje druga i trzecia nasza aplikacja. Logo zostaje w nagłówku
 wewnątrz aplikacji, gdzie kontekst jest już jednoznaczny.
 
-Znak (`icon-mark.png`) pochodzi z warstwy adaptive-foreground aplikacji Flutter
-`IssueReportApp` — to ten sam ptaszek, który operatorzy znają z tabletu. Tło
-zmienione z szarego na granat motywu: większy kontrast na ekranie głównym i
-zgodność z `background_color` z manifestu. Ikony PWA generuje
-`tools/make_icons.py` (uruchamiać tylko po zmianie znaku).
+Znak to ikona **„bug" z biblioteki [Lucide](https://lucide.dev), licencja ISC**
+(atrybucja nieobowiązkowa). Zgodnie z regułą systemu projektowego (§5) znaki
+wszystkich naszych aplikacji pochodzą wyłącznie z Lucide (siatka 24, kreska 2) —
+dzięki temu mają jednakową grubość linii. Podmiana: pobierz nowy plik
+z [lucide.dev](https://lucide.dev), zapisz jako `icon-mark.svg`, uruchom
+`tools/make_icons.py` (generuje 4 kafle PNG).
 
 ## Struktura
 
