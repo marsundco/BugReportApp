@@ -5,7 +5,7 @@
 
 // Wersję PODBIJ przy każdej zmianie listy poniżej — inaczej urządzenia zostaną
 // przy starym cache i nie pobiorą nowych plików.
-const CACHE = "karta-shell-v3";
+const CACHE = "karta-shell-v5";
 const SHELL = [
   "/",
   "/static/style.css",

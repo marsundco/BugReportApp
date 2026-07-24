@@ -111,35 +111,46 @@ body {
           mask: url(/static/logo-white.png) left center / contain no-repeat;
 }
 
+/* Logo to link do portfela — hover/focus rozjaśnia do akcentu (akcent = akcja, §11). */
+a.logo {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+a.logo:hover,
+a.logo:focus-visible {
+  background-color: var(--accent);
+}
+
 .appbar h1 {
   margin: 0;
   min-width: 0;
+  display: flex;
+  align-items: center;     /* znak i nazwa wyśrodkowane w pionie (reguła §5) */
   font-size: clamp(15px, 4.3vw, 19px);
   font-weight: 600;
   letter-spacing: 0.2px;
   line-height: 1.25;
+}
+
+/* Nazwa skraca się wielokropkiem — w kontenerze flex musi to robić element,
+   nie goły tekst. */
+.appbar h1 .app-name {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Znak aplikacji jako pierwsza „litera" nazwy: siada na linii pisma i równa
-   się optycznie z „K" w „Karta". Kolor bierze z tokenu, kształt z alfy pliku —
-   podmiana znaku to podmiana jednego pliku.
-
-   Dlaczego 1.2cap, a nie 1cap: przy równych 1cap znak MIERZY tyle co wersalik
-   (sprawdzone: tusz wypełnia boks w 100 %), ale WYGLĄDA na mniejszy. Okrąg
-   dotyka linii wersalika w jednym punkcie, podczas gdy „K" stoi na niej całą
-   szerokością, a cienki pierścień czyta się lżej niż pełna litera. To ten sam
-   nadmiar, który w krojach pisma dostają „O" i „C". Wartość dobrana przez
-   porównanie 1.0 / 1.1 / 1.2 / 1.3 obok wersalika. */
+/* Znak aplikacji równy wysokości nazwy obok (reguła §5): wiersz nagłówka
+   centruje flexem, a znak dostaje height:1em. Cienka kreska Lucide czyta się
+   lżej niż litera, więc „na wysokość wersalika" wychodziło za mało. Kolor
+   z tokenu, kształt z alfy pliku — podmiana znaku to podmiana jednego pliku. */
 .app-mark {
   display: inline-block;
-  vertical-align: baseline;
-  height: 0.86em;          /* zapas dla przeglądarek bez jednostki cap */
-  height: 1.2cap;          /* wysokość wersalika + nadmiar optyczny */
-  aspect-ratio: 1 / 1;     /* Z PROPORCJI PLIKU (znak jest kwadratowy) */
-  margin-right: 0.38em;
+  flex: none;
+  height: 1em;             /* równo z wysokością nazwy obok */
+  aspect-ratio: 1 / 1;     /* Lucide: siatka 24x24, znak kwadratowy */
+  margin-right: 0.4em;
   background-color: var(--accent);
   -webkit-mask: url(/static/icon-mark.svg) center / contain no-repeat;
           mask: url(/static/icon-mark.svg) center / contain no-repeat;
