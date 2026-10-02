@@ -49,12 +49,14 @@
         <div class="field">
           <label for="shortDesc">Jaka niezgodność wystąpiła? <span class="req" aria-hidden="true">*</span></label>
           <input type="text" id="shortDesc" name="shortDesc" required
-                 autocomplete="off" enterkeyhint="next">
+                 autocomplete="off" enterkeyhint="next"
+                 placeholder="np. Uszkodzony wałek przenośnika">
         </div>
 
         <div class="field">
           <label for="detailedDesc">Szczegółowy opis problemu</label>
-          <textarea id="detailedDesc" name="detailedDesc" rows="5"></textarea>
+          <textarea id="detailedDesc" name="detailedDesc" rows="5"
+                    placeholder="Co się stało, w którym miejscu i od kiedy."></textarea>
         </div>
 
         {% if photo_enabled %}
@@ -84,22 +86,28 @@
            a numer projektu i numer rysunku stoją obok siebie, bo zwykle
            przepisuje się je z tego samego dokumentu. -->
       <section class="group">
-        <h2 class="group-title">Identyfikacja</h2>
+        <!-- „opcjonalne" wprost przy nagłówku: jedyne pole wymagane ma gwiazdkę
+             w grupie wyżej, więc operator nie musi się zastanawiać, czy te
+             pola musi wypełnić. (poprawka z oceny UX) -->
+        <h2 class="group-title">Identyfikacja <span class="group-note">opcjonalne</span></h2>
 
         <div class="row">
           <div class="field">
             <label for="projectName">Numer projektu</label>
-            <input type="text" id="projectName" name="projectName" autocomplete="off">
+            <input type="text" id="projectName" name="projectName" autocomplete="off"
+                   placeholder="np. P/1898/07">
           </div>
           <div class="field">
             <label for="productId">ID produktu / numer rysunku</label>
-            <input type="text" id="productId" name="productId" autocomplete="off">
+            <input type="text" id="productId" name="productId" autocomplete="off"
+                   placeholder="np. 6-20019194">
           </div>
         </div>
 
         <div class="field">
           <label for="reporterName">Imię i nazwisko zgłaszającego</label>
-          <input type="text" id="reporterName" name="reporterName" autocomplete="name">
+          <input type="text" id="reporterName" name="reporterName" autocomplete="name"
+                 placeholder="np. Jan Kowalski">
         </div>
       </section>
 

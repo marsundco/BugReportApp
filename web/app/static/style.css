@@ -203,6 +203,16 @@ a.logo:focus-visible {
   color: var(--text-muted);
 }
 
+/* „opcjonalne" przy nagłówku sekcji — małą literą i lżej, żeby czytało się jak
+   dopisek, nie jak część nazwy grupy (nagłówek jest wersalikami). */
+.group-note {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
+}
+.group-note::before { content: "· "; }
+
 .actions { padding-top: 18px; border-top: 1px solid var(--border); }
 
 /* Dwa pola obok siebie dopiero gdy jest na to miejsce — mobile-first.
@@ -256,6 +266,15 @@ textarea {
   padding: 12px 14px;
   resize: vertical;
   min-height: 116px;
+}
+
+/* Placeholder to PRZYKŁAD, nie etykieta (etykieta jest nad polem). Przygaszony
+   — w kolorze podpisów, nie treści — żeby nie czytał się jak wpisana wartość.
+   opacity:1, bo Firefox domyślnie dodatkowo go wyszarza. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 input[type="text"]:hover,

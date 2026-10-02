@@ -73,6 +73,23 @@ def test_etykiety_nie_zawieraja_starych_bledow():
         assert stara not in body
 
 
+def test_pola_identyfikacji_oznaczone_jako_opcjonalne():
+    """Jedyne pole wymagane ma gwiazdkę; sekcja identyfikacji jest wprost
+    opisana jako opcjonalna, żeby operator nie wahał się, czy musi ją wypełnić."""
+    body = client.get("/").text
+    assert "opcjonalne" in body
+
+
+def test_pola_maja_przyklady_w_placeholderach():
+    """Placeholder to przykład obok etykiety (nie zamiast niej) — odróżnia pole
+    krótkie od szczegółowego i pokazuje format numerów."""
+    body = client.get("/").text
+    assert 'placeholder="np. Uszkodzony wałek przenośnika"' in body
+    assert 'placeholder="np. P/1898/07"' in body
+    # każde pole z przykładem zachowuje swoją <label> — placeholder jej nie zastępuje
+    assert body.count("<label") >= 5
+
+
 def test_pole_zdjecia_uzywa_aparatu_tylnego():
     body = client.get("/").text
     assert 'accept="image/*"' in body
