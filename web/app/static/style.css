@@ -31,8 +31,12 @@
   --danger: #f85149;
   --danger-bg: #2b1414;
 
-  --radius: 12px;
-  --radius-sm: 9px;
+  /* Kształt — kontrolka jest pigułką (reguła kitu §4). Pigułka to kształt
+     z logo WUWER i jedyny detal, po którym nasze aplikacje poznaje się z
+     drugiego końca hali. Prostokąt z lekkim zaokrągleniem zostaje pojemnikom. */
+  --radius: 12px;          /* karty, panele, pole wielolinijkowe */
+  --radius-sm: 9px;        /* miniatury i małe bloki, które NIE są kontrolkami */
+  --radius-pill: 999px;    /* przyciski, pola jednoliniowe, chipy */
   /* Pola pełnej szerokości, ale nie rozjeżdżają się na tablecie/desktopie.
      To jest wprost lekarstwo na sztywne 400dp z wersji androidowej.
      640px: formularz jednokolumnowy szerszy niż to robi się nieprzyjemny
@@ -232,8 +236,6 @@ textarea {
   background: var(--bg-input);
   color: var(--text);
   border: 1px solid var(--border-field);
-  border-radius: var(--radius-sm);
-  padding: 12px 13px;
   /* 16px to minimum, przy którym iOS NIE zoomuje przy fokusie w pole. */
   font-size: 16px;
   font-family: inherit;
@@ -241,7 +243,20 @@ textarea {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-textarea { resize: vertical; min-height: 116px; }
+/* Pole jednoliniowe = kontrolka = pigułka (reguła kitu §4). Szersze marginesy
+   poziome, bo krzywizna pigułki zjada narożniki przy tekście. */
+input[type="text"] {
+  border-radius: var(--radius-pill);
+  padding: 12px 16px;
+}
+
+/* Pole wielolinijkowe pigułką być nie może — zostaje przy promieniu pojemnika. */
+textarea {
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 116px;
+}
 
 input[type="text"]:hover,
 textarea:hover { border-color: var(--border-strong); }
@@ -274,8 +289,8 @@ textarea:focus {
   gap: 9px;
   /* 48px = wygodny cel dotykowy w rękawicach roboczych na hali */
   min-height: 48px;
-  padding: 12px 18px;
-  border-radius: var(--radius-sm);
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);   /* kontrolka = pigułka (reguła kitu §4) */
   border: 1px solid transparent;
   font-size: 16px;
   font-family: inherit;

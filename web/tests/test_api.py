@@ -54,7 +54,7 @@ def test_formularz_ma_polskie_etykiety():
     body = client.get("/").text
     for label in ("Karta niezgodności", "Jaka niezgodność wystąpiła?", "Numer projektu",
                   "ID produktu / numer rysunku", "Szczegółowy opis problemu",
-                  "Imię i nazwisko", "Dodaj zdjęcie", "Zgłoś kartę"):
+                  "Imię i nazwisko zgłaszającego", "Dodaj zdjęcie", "Zgłoś kartę"):
         assert label in body
 
 
@@ -101,25 +101,35 @@ def test_znak_stoi_wewnatrz_naglowka():
     assert '<h1><span class="app-mark"' in body
 
 
-def test_znak_ma_wysokosc_wersalika():
-    """Reguła twarda: znak równa się optycznie z wielką literą nazwy.
+def test_znak_ma_wysokosc_nazwy():
+    """Reguła twarda kitu §5: znak jest tak wysoki jak nazwa obok (height: 1em),
+    a wiersz nagłówka wyśrodkowany flexem.
 
-    1.2cap, nie 1cap: przy równych 1cap znak MIERZY tyle co wersalik, ale
-    wygląda na mniejszy — okrąg dotyka linii wersalika w jednym punkcie.
+    NIE 1cap: cienka kreska Lucide czyta się lżej niż pełna litera i znak w
+    siatce 24 ma własny margines, więc „na wysokość wersalika" wychodził za mały.
     """
     css = client.get("/static/style.css").text
-    assert "height: 1.2cap;" in css
-    assert "height: 0.86em;" in css   # zapas dla przeglądarek bez jednostki cap
+    assert "height: 1em;" in css
 
 
 def test_znak_na_kaflu_ma_margines():
-    """Znak nie może dotykać krawędzi kafla — SVG musi skalować go do środka.
+    """Znak nie może dotykać krawędzi kafla — Lucide 24 skalowany do ~66 % i
+    wyśrodkowany (translate 17 + 66 + 17 = 100).
 
-    Regresja: pierwsza wersja icon.svg rysowała znak na całym viewBoksie,
+    Regresja: wcześniejsza wersja icon.svg rysowała znak na całym viewBoksie,
     więc favicon wyglądał zupełnie inaczej niż kafel PNG.
     """
     svg = client.get("/static/icon.svg").text
-    assert "scale(0.68)" in svg
+    assert "translate(17 17)" in svg
+
+
+def test_kontrolki_sa_pigulkami():
+    """Reguła twarda kitu §4: pola jednoliniowe i przyciski są pigułkami, a
+    textarea zostaje prostokątna (promień pojemnika)."""
+    css = client.get("/static/style.css").text
+    assert "--radius-pill: 999px;" in css
+    # input[type=text] i .btn biorą pigułkę → co najmniej dwa wystąpienia
+    assert css.count("border-radius: var(--radius-pill)") >= 2
 
 
 def test_favicon_i_kafel_maja_zaokraglone_tlo():
