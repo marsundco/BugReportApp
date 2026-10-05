@@ -37,6 +37,7 @@
   --radius: 12px;          /* karty, panele, pole wielolinijkowe */
   --radius-sm: 9px;        /* miniatury i małe bloki, które NIE są kontrolkami */
   --radius-pill: 999px;    /* przyciski, pola jednoliniowe, chipy */
+  --radius-field: 24px;    /* textarea: krzywizna rogu jak u pigułki (48 px / 2) */
   /* Pola pełnej szerokości, ale nie rozjeżdżają się na tablecie/desktopie.
      To jest wprost lekarstwo na sztywne 400dp z wersji androidowej.
      640px: formularz jednokolumnowy szerszy niż to robi się nieprzyjemny
@@ -260,14 +261,11 @@ input[type="text"] {
   padding: 12px 16px;
 }
 
-/* Pole wielolinijkowe pigułką być nie może (przy 116 px wysokości róg miałby
-   58 px i zjadałby tekst). ŚWIADOME odstępstwo od kitu (§4: promień pojemnika):
-   róg = połowa wysokości pola jednoliniowego (48 px / 2), czyli DOKŁADNIE ta
-   sama krzywizna co narożnik pigułki obok. Wszystkie pola mają wtedy jednakowe
-   rogi, a 12 px textarea odstawało od nich wizualnie. Większy margines, żeby
-   tekst nie wchodził w zaokrąglenie. */
+/* Pole wielolinijkowe: rogi z tą samą krzywizną co pigułka obok (kit §4,
+   token --radius-field). Pełna pigułka na wysokim polu zjadałaby tekst.
+   Większy margines, żeby tekst nie wchodził w zaokrąglenie. */
 textarea {
-  border-radius: 24px;
+  border-radius: var(--radius-field);
   padding: 14px 18px;
   resize: vertical;
   min-height: 116px;
