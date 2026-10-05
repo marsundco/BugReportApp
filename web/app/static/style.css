@@ -260,10 +260,15 @@ input[type="text"] {
   padding: 12px 16px;
 }
 
-/* Pole wielolinijkowe pigułką być nie może — zostaje przy promieniu pojemnika. */
+/* Pole wielolinijkowe pigułką być nie może (przy 116 px wysokości róg miałby
+   58 px i zjadałby tekst). ŚWIADOME odstępstwo od kitu (§4: promień pojemnika):
+   róg = połowa wysokości pola jednoliniowego (48 px / 2), czyli DOKŁADNIE ta
+   sama krzywizna co narożnik pigułki obok. Wszystkie pola mają wtedy jednakowe
+   rogi, a 12 px textarea odstawało od nich wizualnie. Większy margines, żeby
+   tekst nie wchodził w zaokrąglenie. */
 textarea {
-  border-radius: var(--radius);
-  padding: 12px 14px;
+  border-radius: 24px;
+  padding: 14px 18px;
   resize: vertical;
   min-height: 116px;
 }

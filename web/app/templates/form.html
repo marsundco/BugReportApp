@@ -47,16 +47,16 @@
         <h2 class="group-title">Niezgodność</h2>
 
         <div class="field">
-          <label for="shortDesc">Jaka niezgodność wystąpiła? <span class="req" aria-hidden="true">*</span></label>
+          <label for="shortDesc">Co się stało? <span class="req" aria-hidden="true">*</span></label>
           <input type="text" id="shortDesc" name="shortDesc" required
                  autocomplete="off" enterkeyhint="next"
                  placeholder="np. Uszkodzony wałek przenośnika">
         </div>
 
         <div class="field">
-          <label for="detailedDesc">Szczegółowy opis problemu</label>
+          <label for="detailedDesc">Opis problemu</label>
           <textarea id="detailedDesc" name="detailedDesc" rows="5"
-                    placeholder="Co się stało, w którym miejscu i od kiedy."></textarea>
+                    placeholder="Gdzie, od kiedy, co już sprawdzono?"></textarea>
         </div>
 
         {% if photo_enabled %}
@@ -93,19 +93,19 @@
 
         <div class="row">
           <div class="field">
-            <label for="projectName">Numer projektu</label>
+            <label for="projectName">Nr projektu</label>
             <input type="text" id="projectName" name="projectName" autocomplete="off"
                    placeholder="np. P/1898/07">
           </div>
           <div class="field">
-            <label for="productId">ID produktu / numer rysunku</label>
+            <label for="productId">ID / Nr rysunku</label>
             <input type="text" id="productId" name="productId" autocomplete="off"
                    placeholder="np. 6-20019194">
           </div>
         </div>
 
         <div class="field">
-          <label for="reporterName">Imię i nazwisko zgłaszającego</label>
+          <label for="reporterName">Zgłaszający</label>
           <input type="text" id="reporterName" name="reporterName" autocomplete="name"
                  placeholder="np. Jan Kowalski">
         </div>

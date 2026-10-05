@@ -52,9 +52,9 @@ def test_healthz_pokazuje_stan_ale_nie_wartosci():
 
 def test_formularz_ma_polskie_etykiety():
     body = client.get("/").text
-    for label in ("Karta niezgodności", "Jaka niezgodność wystąpiła?", "Numer projektu",
-                  "ID produktu / numer rysunku", "Szczegółowy opis problemu",
-                  "Imię i nazwisko zgłaszającego", "Dodaj zdjęcie", "Zgłoś kartę"):
+    for label in ("Karta niezgodności", "Co się stało?", "Nr projektu",
+                  "ID / Nr rysunku", "Opis problemu",
+                  "Zgłaszający", "Dodaj zdjęcie", "Zgłoś kartę"):
         assert label in body
 
 
