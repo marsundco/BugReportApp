@@ -18,7 +18,7 @@ Ta aplikacja należy do portfela WUWER (**apps.wuwer.pl**). Obowiązuje
   nasłuch `127.0.0.1:8001`; logo WUWER w nagłówku linkuje do `https://apps.wuwer.pl`.
 - **Wdrożenie i sekrety:** §12 kitu + `DEPLOY-SEKRETY.md`. Ta aplikacja jest
   wdrażana przez **git** (patrz [deploy/README.md](deploy/README.md)); sekrety
-  (`GOODDAY_API_TOKEN`, `IMGUR_CLIENT_ID`) w `.env` na serwerze, nigdy w repo.
+  (`GOODDAY_API_TOKEN`) w `.env` na serwerze, nigdy w repo.
 
 Kod produkcyjny to `web/` (Python/FastAPI). Katalog `../app/` to martwy
 prototyp Kotlin — nie ruszaj.

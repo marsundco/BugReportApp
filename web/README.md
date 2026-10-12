@@ -40,7 +40,7 @@ python -m venv .venv
 .venv/Scripts/activate            # Windows; Linux: source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env              # uzupełnij GOODDAY_API_TOKEN i IMGUR_CLIENT_ID
+cp .env.example .env              # uzupełnij GOODDAY_API_TOKEN
 uvicorn app.main:app --reload --port 8001
 ```
 
@@ -53,7 +53,7 @@ Otwórz <http://localhost:8001>. Testy: `python -m pytest -q`.
 | Token GoodDay | zaszyty w kliencie (`MainActivity.kt`) | `.env` na serwerze, nigdy w przeglądarce |
 | Rotacja klucza | przebudowa i wymiana APK | edycja `.env` + restart usługi |
 | Szerokość pól | sztywne `400dp` (ucinane na telefonie) | płynne, `max-width: 720px` |
-| Upload zdjęcia | Imgur prosto z urządzenia | Imgur przez backend (`POST /upload`) |
+| Upload zdjęcia | Imgur prosto z urządzenia | załączniki GoodDay przez backend (`POST /upload`) |
 | Status zgłoszenia | zostawał „Zaplanowane" | ustawiany na „Nowe" |
 | Instalacja | APK na każdym urządzeniu | deploy raz, „Dodaj do ekranu głównego" |
 
@@ -62,7 +62,7 @@ Otwórz <http://localhost:8001>. Testy: `python -m pytest -q`.
 | Endpoint | Opis |
 |---|---|
 | `GET /` | formularz |
-| `POST /upload` | zdjęcie → Imgur, zwraca link (Client-ID zostaje na serwerze) |
+| `POST /upload` | zdjęcie → załącznik GoodDay, zwraca `{fileId, name, size, mime}` (token zostaje na serwerze) |
 | `POST /report` | zadanie w GoodDay + pola niestandardowe + status |
 | `GET /healthz` | stan konfiguracji (bez ujawniania sekretów) |
 
@@ -70,7 +70,10 @@ Otwórz <http://localhost:8001>. Testy: `python -m pytest -q`.
 
 Zgłoszenie to trzy wywołania (`app/goodday.py`):
 
-1. `POST /2.0/tasks` — `{projectId, title, fromUserId, message}`
+0. zdjęcia, każde osobno, zaraz po wybraniu (`POST /upload`):
+   `POST /2.0/attachments/upload-urls` → `fileId` + jednorazowy link S3,
+   potem `PUT` pliku na ten link (bez tokenu GoodDay)
+1. `POST /2.0/tasks` — `{projectId, title, fromUserId, message, attachments}`
 2. `PUT /2.0/task/{id}/custom-fields` — `l8dmpO` numer projektu, `MBYlLP` nr rysunku, `5Mk38y` zgłaszający
 3. `PUT /2.0/task/{id}/status` — `{userId, statusId}` → `pcqxl7` („Nowe")
 
@@ -82,8 +85,15 @@ Ustalenia zweryfikowane na żywym API (2026-07-20), bo dokumentacja myli:
 - **`fromUserId="USER1-ID"` to placeholder**, którego GoodDay po cichu ignoruje
   (dlatego 819 z 908 istniejących zgłoszeń nie ma autora). Zostawiony dla
   zgodności — wpisz prawdziwe ID, jeśli chcesz to naprawić.
-- **GoodDay v2 nie ma endpointu na załączniki** (`/attachments`, `/attachment`,
-  `/files`, `/upload` → 404), więc zdjęcia nadal idą na Imgur.
+- **Załączniki (od 2026-10, wcześniej zdjęcia szły na Imgur):** jeden nieważny
+  `fileId` (nieudany upload, link wygasły po godzinie) sprawia, że GoodDay **po
+  cichu odrzuca wszystkie zdjęcia karty** — z kodem 200, a poprawne `fileId` są
+  przy tym zużyte (nie da się ich potem dołączyć nawet komentarzem). Dokumentacja
+  twierdzi, że pomijany jest tylko błędny plik — to nieprawda (sprawdzone
+  2026-10-12). Dlatego przeglądarka wysyła tylko potwierdzone zdjęcia i ponawia
+  upload zdjęć starszych niż 45 min, a serwer po utworzeniu karty liczy
+  faktycznie dołączone załączniki i przy braku zwraca ostrzeżenie `zdjęcia`
+  (operator widzi komunikat, żeby dodać je ręcznie).
 
 Statusy w projekcie: `pcqxl7` Nowe · `xuJ1Ih` Zaplanowane (domyślny) ·
 `LeHvIP` W realizacij · `EOGb6O` Zakończone.
@@ -128,8 +138,7 @@ z [lucide.dev](https://lucide.dev), zapisz jako `icon-mark.svg`, uruchom
 ```
 app/
   main.py         FastAPI: /, /upload, /report, /healthz, manifest, sw.js
-  goodday.py      klient GoodDay (3 kroki zgłoszenia)
-  imgur.py        upload zdjęć po stronie serwera
+  goodday.py      klient GoodDay (zdjęcia jako załączniki + 3 kroki zgłoszenia)
   templates/      form.html
   static/         style.css, app.js, sw.js, manifest, logo, ikony
 config.py         konfiguracja z .env
