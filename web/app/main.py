@@ -1,9 +1,10 @@
-"""FastAPI: serwuje formularz "Karta niezgodności" i proxy do GoodDay/Imgur.
+"""FastAPI: serwuje formularz "Karta niezgodności" i proxy do GoodDay.
 
 Sekrety zostają na serwerze — przeglądarka rozmawia wyłącznie z tym backendem.
 """
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 import config
-from app import goodday, imgur
+from app import goodday
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -45,14 +46,17 @@ async def index(request: Request):
     return templates.TemplateResponse(request, "form.html", {
         "request": request,
         "asset_v": _asset_version(),
-        # Bez Client-ID nie ma sensu pokazywać przycisku zdjęcia.
-        "photo_enabled": config.imgur_configured(),
+        # Zdjęcia idą jako załączniki GoodDay — bez tokenu nie ma ich dokąd wysłać.
+        "photo_enabled": config.goodday_configured(),
     })
 
 
 @app.post("/upload")
 async def upload(photo: UploadFile = File(...)):
-    """Przyjmij zdjęcie, wyślij na Imgur, zwróć link. Client-ID zostaje na serwerze."""
+    """Przyjmij zdjęcie i wyślij je do GoodDay jako załącznik (jeszcze bez karty).
+
+    Zwraca wpis do `attachments`, który przeglądarka odeśle przy zgłoszeniu.
+    Token GoodDay zostaje na serwerze."""
     content = await photo.read()
 
     if not content:
@@ -63,20 +67,53 @@ async def upload(photo: UploadFile = File(...)):
             {"ok": False, "error": f"Zdjęcie jest za duże (limit {config.MAX_UPLOAD_MB} MB)."},
             status_code=413,
         )
+    if not config.goodday_configured():
+        return JSONResponse({"ok": False, "error": "Wysyłanie zdjęć nie jest skonfigurowane."},
+                            status_code=503)
     if not (photo.content_type or "").startswith("image/"):
         return JSONResponse({"ok": False, "error": "Wybrany plik nie jest zdjęciem."},
                             status_code=400)
 
     try:
-        link = imgur.upload_image(photo.filename, content, photo.content_type)
-    except imgur.ImgurError as exc:
+        attachment = goodday.upload_attachment(photo.filename, content, photo.content_type)
+    except goodday.GoodDayError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
     except Exception:
         logger.exception("Nieoczekiwany błąd wysyłania zdjęcia.")
         return JSONResponse({"ok": False, "error": "Nie udało się wysłać zdjęcia."},
                             status_code=502)
 
-    return {"ok": True, "link": link}
+    return {"ok": True, "file": attachment}
+
+
+def _parse_attachments(raw: str) -> list[dict] | None:
+    """Lista załączników odesłana przez przeglądarkę (JSON). None = zły format.
+
+    Przepuszczamy tylko znane pola i sprawdzamy fileId — wartości przyszły od
+    klienta, a trafią do API GoodDay."""
+    if not raw.strip():
+        return []
+    try:
+        items = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(items, list) or len(items) > goodday.MAX_ATTACHMENTS:
+        return None
+    out = []
+    for it in items:
+        if not isinstance(it, dict):
+            return None
+        file_id, name = it.get("fileId"), it.get("name")
+        if not (isinstance(file_id, str) and goodday.FILE_ID_RE.match(file_id)
+                and isinstance(name, str) and 0 < len(name) <= 255):
+            return None
+        entry = {"fileId": file_id, "name": name}
+        if isinstance(it.get("size"), int) and it["size"] >= 0:
+            entry["size"] = it["size"]
+        if isinstance(it.get("mime"), str) and len(it["mime"]) <= 100:
+            entry["mime"] = it["mime"]
+        out.append(entry)
+    return out
 
 
 @app.post("/report")
@@ -86,7 +123,7 @@ async def report(
     productId: str = Form(""),
     detailedDesc: str = Form(""),
     reporterName: str = Form(""),
-    imageLink: str = Form(""),
+    attachments: str = Form(""),
 ):
     """Utwórz zgłoszenie w GoodDay (zadanie + pola + status)."""
     if not config.goodday_configured():
@@ -99,7 +136,10 @@ async def report(
         return JSONResponse({"ok": False, "error": "Opis niezgodności jest wymagany."},
                             status_code=400)
 
-    links = [link for link in (imageLink or "").split("\n") if link.strip()]
+    files = _parse_attachments(attachments)
+    if files is None:
+        return JSONResponse({"ok": False, "error": "Nieprawidłowa lista zdjęć."},
+                            status_code=400)
 
     try:
         result = goodday.submit_report(
@@ -108,7 +148,7 @@ async def report(
             product_id=productId,
             detailed_desc=detailedDesc,
             reporter_name=reporterName,
-            image_links=links,
+            attachments=files,
         )
     except goodday.GoodDayError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
@@ -139,6 +179,5 @@ async def healthz():
     return {
         "status": "ok" if config.goodday_configured() else "degraded",
         "goodday": config.goodday_configured(),
-        "imgur": config.imgur_configured(),
         "status_step": config.status_step_configured(),
     }

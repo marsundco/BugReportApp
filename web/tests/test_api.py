@@ -1,6 +1,7 @@
 """Testy endpointów HTTP — w tym najważniejszy: sekrety NIE wyciekają do przeglądarki."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import config  # noqa: E402
-from app import goodday, imgur  # noqa: E402
+from app import goodday  # noqa: E402
 from app.main import app  # noqa: E402
 
 client = TestClient(app)
@@ -18,13 +19,12 @@ client = TestClient(app)
 # Wartości ATRAPY — prawdziwych sekretów nie wpisujemy nawet w testach, bo testy
 # trafiają do repo. Test wycieku działa tak samo: wstrzykujemy je do configu
 # i sprawdzamy, że nie wychodzą do przeglądarki.
-SECRETS = ("test-goodday-token-DO-NOT-USE", "test-imgur-client-id")
+SECRETS = ("test-goodday-token-DO-NOT-USE",)
 
 
 @pytest.fixture(autouse=True)
 def _configured(monkeypatch):
     monkeypatch.setattr(config, "GOODDAY_API_TOKEN", SECRETS[0])
-    monkeypatch.setattr(config, "IMGUR_CLIENT_ID", SECRETS[1])
 
 
 def test_strona_glowna_nie_zawiera_zadnego_sekretu():
@@ -176,47 +176,49 @@ def test_report_zwraca_numer_zgloszenia(monkeypatch):
     assert resp.json() == {"ok": True, "taskId": "T1", "shortId": "999", "warnings": []}
 
 
-def test_report_przekazuje_link_do_zdjecia(monkeypatch):
-    captured = {}
+ATT = {"fileId": "dd520119-2a4f-4122-85ad-960adba52e87", "name": "a.jpg",
+       "size": 70, "mime": "image/jpeg"}
+
+
+@pytest.fixture
+def captured(monkeypatch):
+    seen = {}
 
     def fake_submit(**kwargs):
-        captured.update(kwargs)
+        seen.update(kwargs)
         return {"taskId": "T1", "shortId": "9", "warnings": []}
 
     monkeypatch.setattr(goodday, "submit_report", fake_submit)
-    client.post("/report", data={"shortDesc": "x", "imageLink": "https://i.imgur.com/a.png"})
-    assert captured["image_links"] == ["https://i.imgur.com/a.png"]
+    return seen
 
 
-def test_report_przekazuje_wiele_zdjec(monkeypatch):
-    """Kilka linków przychodzi jako jedno pole, po jednym w linii."""
-    captured = {}
-
-    def fake_submit(**kwargs):
-        captured.update(kwargs)
-        return {"taskId": "T1", "shortId": "9", "warnings": []}
-
-    monkeypatch.setattr(goodday, "submit_report", fake_submit)
-    client.post("/report", data={
-        "shortDesc": "x",
-        "imageLink": "https://i.imgur.com/a.png\nhttps://i.imgur.com/b.png",
-    })
-    assert captured["image_links"] == [
-        "https://i.imgur.com/a.png",
-        "https://i.imgur.com/b.png",
-    ]
+def test_report_przekazuje_zalaczniki(captured):
+    client.post("/report", data={"shortDesc": "x", "attachments": json.dumps([ATT, ATT])})
+    assert captured["attachments"] == [ATT, ATT]
 
 
-def test_report_ignoruje_puste_linie_w_linkach(monkeypatch):
-    captured = {}
+def test_report_bez_zdjec_to_pusta_lista(captured):
+    client.post("/report", data={"shortDesc": "x"})
+    assert captured["attachments"] == []
 
-    def fake_submit(**kwargs):
-        captured.update(kwargs)
-        return {"taskId": "T1", "shortId": "9", "warnings": []}
 
-    monkeypatch.setattr(goodday, "submit_report", fake_submit)
-    client.post("/report", data={"shortDesc": "x", "imageLink": "\n\n"})
-    assert captured["image_links"] == []
+def test_report_przepuszcza_tylko_znane_pola_zalacznika(captured):
+    client.post("/report", data={"shortDesc": "x",
+                                 "attachments": json.dumps([{**ATT, "evil": "<script>"}])})
+    assert captured["attachments"] == [ATT]
+
+
+@pytest.mark.parametrize("raw", [
+    "nie-json",
+    json.dumps({"fileId": "x"}),                                   # nie lista
+    json.dumps([{"fileId": "../../etc", "name": "a.jpg"}]),        # zły fileId
+    json.dumps([{"fileId": ATT["fileId"], "name": ""}]),           # pusta nazwa
+    json.dumps([ATT] * 21),                                        # ponad limit GoodDay
+])
+def test_report_odrzuca_zla_liste_zdjec(captured, raw):
+    resp = client.post("/report", data={"shortDesc": "x", "attachments": raw})
+    assert resp.status_code == 400
+    assert captured == {}   # nic nie poszło do GoodDay
 
 
 def test_report_blad_goodday_to_502(monkeypatch):
@@ -246,12 +248,17 @@ def test_upload_odrzuca_za_duzy_plik(monkeypatch):
     assert resp.status_code == 413
 
 
-def test_upload_zwraca_link(monkeypatch):
-    monkeypatch.setattr(imgur, "upload_image",
-                        lambda *a, **k: "https://i.imgur.com/ok.png")
+def test_upload_zwraca_zalacznik_goodday(monkeypatch):
+    monkeypatch.setattr(goodday, "upload_attachment", lambda *a, **k: ATT)
     resp = client.post("/upload", files={"photo": ("a.jpg", b"xxx", "image/jpeg")})
     assert resp.status_code == 200
-    assert resp.json() == {"ok": True, "link": "https://i.imgur.com/ok.png"}
+    assert resp.json() == {"ok": True, "file": ATT}
+
+
+def test_upload_bez_tokenu_to_503(monkeypatch):
+    monkeypatch.setattr(config, "GOODDAY_API_TOKEN", "")
+    resp = client.post("/upload", files={"photo": ("a.jpg", b"xxx", "image/jpeg")})
+    assert resp.status_code == 503
 
 
 def test_manifest_i_sw_serwowane_z_roota():

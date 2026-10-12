@@ -18,7 +18,8 @@ const MAX_PHOTOS = 10;
    każdym wyborze czyścimy input (dzięki temu da się też dodać dwa razy ten
    sam plik, np. dwa ujęcia tej samej wady).
 
-   Każdy wpis: { id, file, url, link, state: "upload" | "ok" | "err" } */
+   Każdy wpis: { id, file, url, attachment, uploadedAt, state: "upload" | "ok" | "err" }
+   attachment = { fileId, name, size, mime } — załącznik GoodDay zwrócony przez /upload. */
 let photos = [];
 let nextPhotoId = 1;
 
@@ -73,7 +74,8 @@ if (photoInput) {
         id: nextPhotoId++,
         file,
         url: URL.createObjectURL(file),
-        link: "",
+        attachment: null,
+        uploadedAt: 0,
         state: "upload",
       };
       photos.push(entry);
@@ -88,14 +90,23 @@ if (photoInput) {
   });
 }
 
+/* Link do wysłania pliku w GoodDay wygasa po godzinie, a JEDNO nieważne zdjęcie
+   sprawia, że GoodDay po cichu odrzuca WSZYSTKIE zdjęcia karty (patrz
+   goodday.py). Zdjęcie zrobione dawno temu (operator odszedł od tabletu)
+   wysyłamy więc ponownie tuż przed zgłoszeniem — z zapasem. */
+const PHOTO_MAX_AGE_MS = 45 * 60 * 1000;
+
 async function uploadPhoto(entry) {
+  entry.state = "upload";
+  renderGallery();
   const body = new FormData();
   body.append("photo", entry.file);
   try {
     const resp = await fetch("/upload", { method: "POST", body });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || !data.ok) throw new Error(data.error || "Nie udało się wysłać zdjęcia.");
-    entry.link = data.link;
+    entry.attachment = data.file;
+    entry.uploadedAt = Date.now();
     entry.state = "ok";
   } catch (err) {
     entry.state = "err";
@@ -192,7 +203,11 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  // Któreś zdjęcie wciąż leci na serwer — poczekaj, zamiast zgubić link.
+  // Zdjęcia sprzed ponad 45 min — wyślij jeszcze raz (patrz PHOTO_MAX_AGE_MS).
+  const stale = photos.filter((p) => p.state === "ok" && Date.now() - p.uploadedAt > PHOTO_MAX_AGE_MS);
+  stale.forEach((p) => uploadPhoto(p));
+
+  // Któreś zdjęcie wciąż leci na serwer — poczekaj, zamiast je zgubić.
   if (photos.some((p) => p.state === "upload")) {
     toast("Czekam na wysłanie zdjęć…", "ok", 2500);
     while (photos.some((p) => p.state === "upload")) {
@@ -215,10 +230,11 @@ form.addEventListener("submit", async (event) => {
   submitBtn.classList.add("busy");
 
   const body = new FormData(form);
-  // Pliki idą osobnym endpointem — do /report wysyłamy tylko gotowe linki,
-  // po jednym w linii (backend rozdziela je po znaku nowej linii).
+  // Pliki są już w GoodDay (wysłane przez /upload) — do /report idą tylko ich
+  // identyfikatory jako JSON.
   body.delete("photo");
-  body.set("imageLink", photos.filter((p) => p.link).map((p) => p.link).join("\n"));
+  body.set("attachments", JSON.stringify(
+    photos.filter((p) => p.state === "ok" && p.attachment).map((p) => p.attachment)));
 
   try {
     const resp = await fetch("/report", { method: "POST", body });
@@ -226,7 +242,14 @@ form.addEventListener("submit", async (event) => {
     if (!resp.ok || !data.ok) throw new Error(data.error || "Nie udało się wysłać zgłoszenia.");
 
     const nr = data.shortId ? ` (nr ${data.shortId})` : "";
-    toast(`Zgłoszenie wysłane${nr}. Dziękujemy!`, "ok");
+    if ((data.warnings || []).includes("zdjęcia")) {
+      // Karta istnieje — NIE zachęcamy do ponownej wysyłki (duplikat), tylko
+      // mówimy, co zrobić ze zdjęciami.
+      toast(`Zgłoszenie wysłane${nr}, ale nie wszystkie zdjęcia zostały dołączone. ` +
+            `Dodaj je ręcznie w GoodDay.`, "err", 9000);
+    } else {
+      toast(`Zgłoszenie wysłane${nr}. Dziękujemy!`, "ok");
+    }
 
     form.reset();
     clearPhotos();

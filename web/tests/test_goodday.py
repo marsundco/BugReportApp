@@ -31,21 +31,47 @@ class FakeResponse:
         return self._payload
 
 
+class _Calls(list):
+    """Lista wywołań (metoda, url, body) + atrybut `attached` do sterowania atrapą."""
+
+
 @pytest.fixture
 def calls(monkeypatch):
     """Przechwytuje wywołania requests.post/put i zwraca listę (metoda, url, body)."""
-    recorded: list[tuple[str, str, dict]] = []
+    recorded = _Calls()
+    # Ile załączników GoodDay „przypnie" do zadania — testy mogą to zmienić,
+    # żeby zasymulować ciche pominięcie (patrz nagłówek goodday.py).
+    recorded_attached = {"count": None}
 
     def fake_post(url, json=None, headers=None, timeout=None):
         recorded.append(("POST", url, json))
+        if url.endswith("/attachments/upload-urls"):
+            return FakeResponse(200, [{"fileId": "11111111-2222-3333-4444-555555555555",
+                                       "name": json["files"][0]["name"],
+                                       "uploadUrl": "https://s3.example/temp/x?sig=1",
+                                       "mime": "image/jpeg"}])
         return FakeResponse(200, {"id": "TASK42", "shortId": "1234"})
 
-    def fake_put(url, json=None, headers=None, timeout=None):
-        recorded.append(("PUT", url, json))
+    def fake_put(url, json=None, headers=None, timeout=None, data=None):
+        recorded.append(("PUT", url, json if data is None else {"bytes": len(data),
+                                                                 "headers": headers}))
         return FakeResponse(200, {})
+
+    def fake_get(url, headers=None, timeout=None):
+        recorded.append(("GET", url, None))
+        n = recorded_attached["count"]
+        # domyślnie: dołączono wszystko, co wysłano przy tworzeniu zadania
+        if n is None:
+            create = next(c for c in recorded if c[1].endswith("/2.0/tasks"))
+            n = len(create[2].get("attachments", []))
+        resp = FakeResponse(200, [{"attachments": [{}] * n}])
+        resp.raise_for_status = lambda: None
+        return resp
 
     monkeypatch.setattr(goodday.requests, "post", fake_post)
     monkeypatch.setattr(goodday.requests, "put", fake_put)
+    monkeypatch.setattr(goodday.requests, "get", fake_get)
+    recorded.attached = recorded_attached
     monkeypatch.setattr(config, "GOODDAY_API_TOKEN", "test-token")
     monkeypatch.setattr(config, "GOODDAY_ACTOR_USER_ID", "SPvGQx")
     return recorded
@@ -96,29 +122,62 @@ def test_pola_niestandardowe_maja_wlasciwe_id(calls):
     }
 
 
-def test_link_do_zdjecia_doklejany_do_opisu(calls):
-    _submit(image_links=["https://i.imgur.com/a.png"])
-    message = calls[0][2]["message"]
-    assert message == "Otwory nie pasują.\nhttps://i.imgur.com/a.png"
+ATT_A = {"fileId": "aaaaaaaa-0000-0000-0000-000000000001", "name": "a.jpg",
+         "size": 10, "mime": "image/jpeg"}
+ATT_B = {"fileId": "bbbbbbbb-0000-0000-0000-000000000002", "name": "b.jpg",
+         "size": 20, "mime": "image/jpeg"}
 
 
-def test_wiele_zdjec_kazde_w_osobnej_linii(calls):
-    _submit(image_links=[
-        "https://i.imgur.com/a.png",
-        "https://i.imgur.com/b.png",
-        "https://i.imgur.com/c.png",
-    ])
-    assert calls[0][2]["message"] == (
-        "Otwory nie pasują.\n"
-        "https://i.imgur.com/a.png\n"
-        "https://i.imgur.com/b.png\n"
-        "https://i.imgur.com/c.png"
-    )
+def test_zdjecia_ida_jako_zalaczniki_a_nie_linki_w_opisie(calls):
+    _submit(attachments=[ATT_A, ATT_B])
+    create = calls[0][2]
+    assert create["attachments"] == [ATT_A, ATT_B]
+    assert create["message"] == "Otwory nie pasują."   # opis bez doklejonych linków
 
 
-def test_same_zdjecia_bez_opisu_nie_daja_wiodacej_pustej_linii(calls):
-    _submit(detailed_desc="", image_links=["https://i.imgur.com/a.png"])
-    assert calls[0][2]["message"] == "https://i.imgur.com/a.png"
+def test_bez_zdjec_brak_pola_attachments_i_brak_sprawdzania(calls):
+    _submit()
+    assert "attachments" not in calls[0][2]
+    assert not any(c[0] == "GET" for c in calls)
+
+
+def test_wszystkie_zdjecia_dolaczone_brak_ostrzezenia(calls):
+    result = _submit(attachments=[ATT_A, ATT_B])
+    assert any(c[0] == "GET" and c[1].endswith("/task/TASK42/messages") for c in calls)
+    assert "zdjęcia" not in result["warnings"]
+
+
+def test_po_cichu_pominiete_zdjecie_daje_ostrzezenie(calls):
+    """GoodDay zwraca 200 nawet gdy pominie załącznik — musimy to wykryć sami."""
+    calls.attached["count"] = 1
+    result = _submit(attachments=[ATT_A, ATT_B])
+    assert result["taskId"] == "TASK42"          # karta i tak powstała
+    assert "zdjęcia" in result["warnings"]
+
+
+def test_upload_zalacznika_dwa_kroki_bez_tokenu_do_s3(calls):
+    att = goodday.upload_attachment("IMG_1.jpg", b"x" * 7, "image/jpeg")
+    assert calls[0][1].endswith("/2.0/attachments/upload-urls")
+    assert calls[0][2] == {"files": [{"name": "IMG_1.jpg"}]}
+    method, url, body = calls[1]
+    assert (method, url) == ("PUT", "https://s3.example/temp/x?sig=1")
+    assert body["bytes"] == 7
+    # token GoodDay NIE może wyjść do Amazona
+    assert "gd-api-token" not in body["headers"]
+    assert att == {"fileId": "11111111-2222-3333-4444-555555555555",
+                   "name": "IMG_1.jpg", "size": 7, "mime": "image/jpeg"}
+
+
+def test_nazwa_bez_rozszerzenia_dostaje_je_z_typu(calls):
+    """GoodDay ustala MIME po rozszerzeniu, a aparat oddaje czasem plik „blob"."""
+    goodday.upload_attachment("blob", b"x", "image/png")
+    assert calls[0][2]["files"][0]["name"] == "blob.png"
+
+
+def test_nazwa_ze_sciezka_jest_oczyszczona(calls):
+    goodday.upload_attachment("..\\..\\C:/x/zdj.jpg", b"x", "image/jpeg")
+    name = calls[0][2]["files"][0]["name"]
+    assert "/" not in name and "\\" not in name
 
 
 def test_bez_zdjecia_opis_bez_pustej_linii(calls):

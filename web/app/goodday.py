@@ -7,6 +7,25 @@ plus nowy krok statusu:
 2. PUT  /2.0/task/{id}/custom-fields     -> uzupełnienie 3 pól niestandardowych
 3. PUT  /2.0/task/{id}/status            -> ustawienie statusu na "Nowe"
 
+Zdjęcia (od 2026-10 zamiast Imgura) — natywne załączniki GoodDay, osobno, zanim
+powstanie karta:
+
+a. POST /2.0/attachments/upload-urls     -> rezerwacja: fileId + jednorazowy uploadUrl
+b. PUT  <uploadUrl> (S3, surowe bajty)    -> wysłanie pliku
+c. "attachments": [{fileId, name, size, mime}] w kroku 1
+
+UWAGA do kroku c (sprawdzone na żywym API 2026-10-12, gorzej niż w dokumentacji):
+jeden nieprawidłowy fileId (nieudany upload, wygasły link) sprawia, że GoodDay
+odrzuca WSZYSTKIE załączniki tej karty — po cichu, z kodem 200. Poprawne fileId
+są przy tym zużywane: nie da się ich potem dołączyć nawet komentarzem.
+
+Stąd dwie zasady:
+- przeglądarka wysyła wyłącznie zdjęcia z potwierdzonym uploadem, a zdjęcia
+  starsze niż 45 min wysyła ponownie (link wygasa po godzinie) — app.js;
+- po utworzeniu karty liczymy faktycznie dołączone załączniki
+  (count_attachments) i przy braku zwracamy ostrzeżenie „zdjęcia", żeby
+  operator dodał je ręcznie, zamiast myśleć, że są.
+
 UWAGA do kroku 3: oficjalna dokumentacja GoodDay podaje dla statusu metodę POST.
 To nieprawda — POST zwraca 405 Method Not Allowed. Działa wyłącznie PUT
 (zweryfikowane na żywym API, 2026-07-20). Nie "poprawiaj" tego na POST.
@@ -14,6 +33,8 @@ To nieprawda — POST zwraca 405 Method Not Allowed. Działa wyłącznie PUT
 from __future__ import annotations
 
 import logging
+import mimetypes
+import re
 
 import requests
 
@@ -47,7 +68,61 @@ def _put(path: str, payload: dict) -> requests.Response:
                         timeout=config.http_timeout())
 
 
-def create_task(title: str, message: str) -> dict:
+# fileId z GoodDay to UUID. Klient odsyła go nam przy zgłoszeniu, więc
+# sprawdzamy format, zanim trafi do API.
+FILE_ID_RE = re.compile(r"^[0-9a-fA-F-]{8,64}$")
+MAX_ATTACHMENTS = 20   # limit GoodDay na jedno żądanie
+
+
+def _attachment_name(filename: str | None, content_type: str | None) -> str:
+    """Nazwa pliku z rozszerzeniem. GoodDay wyznacza MIME po rozszerzeniu nazwy,
+    a aparat w przeglądarce potrafi oddać plik bez niego (np. „blob")."""
+    raw = (filename or "").strip()
+    name = "".join(c if c.isprintable() and c not in "/\\" else "_" for c in raw)
+    name = name[-200:] or "zdjecie"   # GoodDay: nazwa maks. 255 znaków
+    if "." not in name:
+        ext = mimetypes.guess_extension(content_type or "") or ".jpg"
+        name += ".jpg" if ext in (".jpe", ".jfif") else ext
+    return name
+
+
+def upload_attachment(filename: str | None, content: bytes,
+                      content_type: str | None) -> dict:
+    """Kroki a+b: zarezerwuj miejsce i wyślij plik. Zwraca wpis do `attachments`."""
+    name = _attachment_name(filename, content_type)
+    resp = _post("/2.0/attachments/upload-urls", {"files": [{"name": name}]})
+    if not resp.ok:
+        logger.error("Rezerwacja załącznika nieudana: %s %s", resp.status_code, resp.text[:500])
+        raise GoodDayError(f"Nie udało się wysłać zdjęcia. Spróbuj ponownie "
+                           f"(błąd {resp.status_code}).")
+    try:
+        slot = resp.json()[0]
+        file_id, upload_url, mime = slot["fileId"], slot["uploadUrl"], slot["mime"]
+    except (ValueError, LookupError, TypeError):
+        logger.error("Nieoczekiwana odpowiedź upload-urls: %s", resp.text[:500])
+        raise GoodDayError("Nie udało się wysłać zdjęcia. Spróbuj ponownie.")
+
+    # Podpisany link S3 — BEZ nagłówka gd-api-token: token nie może wyjść do Amazona.
+    put = requests.put(upload_url, data=content, headers={"Content-Type": mime},
+                       timeout=config.http_timeout())
+    if not put.ok:
+        logger.error("Upload pliku do S3 nieudany: %s %s", put.status_code, put.text[:300])
+        raise GoodDayError(f"Nie udało się wysłać zdjęcia. Spróbuj ponownie "
+                           f"(błąd {put.status_code}).")
+
+    logger.info("Załącznik wysłany: %s (%s, %d B)", file_id, name, len(content))
+    return {"fileId": file_id, "name": name, "size": len(content), "mime": mime}
+
+
+def count_attachments(task_id: str) -> int:
+    """Ile załączników GoodDay faktycznie przypiął do zadania (patrz UWAGA w nagłówku)."""
+    resp = requests.get(_url(f"/2.0/task/{task_id}/messages"), headers=_headers(),
+                        timeout=config.http_timeout())
+    resp.raise_for_status()
+    return sum(len(m.get("attachments") or []) for m in resp.json())
+
+
+def create_task(title: str, message: str, attachments: list[dict] | None = None) -> dict:
     """Krok 1: utwórz zadanie. Zwraca surową odpowiedź GoodDay (z `id`, `shortId`)."""
     payload = {
         "projectId": config.GOODDAY_PROJECT_ID,
@@ -55,6 +130,8 @@ def create_task(title: str, message: str) -> dict:
         "fromUserId": config.GOODDAY_FROM_USER_ID,
         "message": message,
     }
+    if attachments:
+        payload["attachments"] = attachments
     resp = _post("/2.0/tasks", payload)
     if not resp.ok:
         logger.error("Tworzenie zadania nieudane: %s %s", resp.status_code, resp.text[:500])
@@ -108,7 +185,7 @@ def set_status(task_id: str) -> None:
 
 def submit_report(*, short_desc: str, project_name: str, product_id: str,
                   detailed_desc: str, reporter_name: str,
-                  image_links: list[str] | None = None) -> dict:
+                  attachments: list[dict] | None = None) -> dict:
     """Pełne zgłoszenie: utwórz zadanie, ustaw pola, ustaw status.
 
     Zwraca {"taskId", "shortId", "warnings"}.
@@ -117,12 +194,9 @@ def submit_report(*, short_desc: str, project_name: str, product_id: str,
     i zostaje zgłoszone jako sukces (z ostrzeżeniem w logu). Zwrócenie użytkownikowi
     błędu skusiłoby go do ponownego wysłania — a to zduplikowałoby kartę na tablicy.
     """
-    links = image_links or []
-    message = detailed_desc.strip()
-    if links:
-        message = (message + "\n" + "\n".join(links)).strip()
-
-    task = create_task(title=short_desc.strip(), message=message)
+    attachments = (attachments or [])[:MAX_ATTACHMENTS]
+    task = create_task(title=short_desc.strip(), message=detailed_desc.strip(),
+                       attachments=attachments)
     task_id = task["id"]
     short_id = task.get("shortId")
     warnings: list[str] = []
@@ -139,6 +213,18 @@ def submit_report(*, short_desc: str, project_name: str, product_id: str,
     except (GoodDayError, requests.RequestException) as exc:
         logger.warning("Zadanie %s utworzone, ale status niezmieniony: %s", task_id, exc)
         warnings.append("status")
+
+    if attachments:
+        try:
+            attached = count_attachments(task_id)
+        except (requests.RequestException, ValueError) as exc:
+            # Nie wiemy — nie strasz operatora; tylko log.
+            logger.warning("Nie udało się policzyć załączników zadania %s: %s", task_id, exc)
+        else:
+            if attached < len(attachments):
+                logger.warning("Zadanie %s: dołączono %d z %d zdjęć.",
+                               task_id, attached, len(attachments))
+                warnings.append("zdjęcia")
 
     logger.info("Zgłoszenie utworzone: %s (#%s), ostrzeżenia: %s",
                 task_id, short_id, warnings or "brak")

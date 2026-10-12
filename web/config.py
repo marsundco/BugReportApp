@@ -1,6 +1,6 @@
 """Konfiguracja aplikacji — ładowana z .env (przez python-dotenv) i zmiennych środowiskowych.
 
-WSZYSTKIE sekrety (token GoodDay, Client-ID Imgur) żyją TUTAJ — po stronie serwera.
+WSZYSTKIE sekrety (token GoodDay) żyją TUTAJ — po stronie serwera.
 Nigdy nie trafiają do przeglądarki i nigdy nie są commitowane (patrz .gitignore).
 Rotacja klucza = edycja .env + restart usługi. Bez przebudowy klienta.
 """
@@ -45,12 +45,10 @@ GOODDAY_FIELD_PROJECT = os.getenv("GOODDAY_FIELD_PROJECT", "l8dmpO")   # Numer p
 GOODDAY_FIELD_PRODUCT = os.getenv("GOODDAY_FIELD_PRODUCT", "MBYlLP")   # ID produktu / nr rysunku
 GOODDAY_FIELD_REPORTER = os.getenv("GOODDAY_FIELD_REPORTER", "5Mk38y")  # Imię i nazwisko
 
-# --- Imgur ---
-# GoodDay API v2 nie ma endpointu do załączników (sprawdzone: 404 na
-# /attachments, /attachment, /files, /upload), więc zdjęcie nadal ląduje na
-# Imgurze, a do zadania trafia link. Różnica wobec Androida: upload robi serwer.
-IMGUR_BASE_URL = os.getenv("IMGUR_BASE_URL", "https://api.imgur.com/3")
-IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID", "")
+# --- Zdjęcia ---
+# Od 2026-10 zdjęcia są natywnymi załącznikami GoodDay (endpoint
+# /2.0/attachments/upload-urls). Wcześniej szły na Imgur, bo GoodDay API v2 nie
+# miało załączników. Osobny klucz nie jest już potrzebny — wystarcza token GoodDay.
 
 # --- Limity uploadu ---
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
@@ -68,11 +66,6 @@ def http_timeout() -> tuple[int, int]:
 def goodday_configured() -> bool:
     """True gdy ustawiono token — bez niego /report nie ma jak działać."""
     return bool(GOODDAY_API_TOKEN)
-
-
-def imgur_configured() -> bool:
-    """True gdy ustawiono Client-ID — bez niego wyłączamy dodawanie zdjęć."""
-    return bool(IMGUR_CLIENT_ID)
 
 
 def status_step_configured() -> bool:
