@@ -206,3 +206,35 @@ def test_brak_uzytkownika_wykonawcy_daje_ostrzezenie_nie_blad(calls, monkeypatch
     result = _submit()
     assert result["taskId"] == "TASK42"
     assert "status" in result["warnings"]
+
+
+def test_zdjecia_wstawione_w_opis_pod_tekstem(calls):
+    """messageRTF: najpierw akapity opisu, na końcu akapit ze zdjęciami."""
+    _submit(detailed_desc="Linia 1\n\nLinia 3", attachments=[{**ATT_A, "aspectRatio": 0.75}, ATT_B])
+    create = calls[0][2]
+    assert create["message"] == "Linia 1\n\nLinia 3"        # zwykły tekst zostaje
+    paras = create["messageRTF"]["content"]["root"]["children"]
+    assert create["messageRTF"]["v"] == "lexical-1"
+    assert [p["children"][0]["text"] if p["children"] and p["children"][0]["type"] == "text"
+            else None for p in paras[:3]] == ["Linia 1", None, "Linia 3"]
+    imgs = paras[-1]["children"]
+    assert [i["type"] for i in imgs] == ["attachment", "attachment"]
+    assert [i["attachment"]["fileId"] for i in imgs] == [ATT_A["fileId"], ATT_B["fileId"]]
+    assert imgs[0]["attachment"]["aspectRatio"] == 0.75
+    assert imgs[1]["attachment"]["aspectRatio"] == goodday.DEFAULT_ASPECT   # brak → domyślne
+
+
+def test_aspect_ratio_nie_trafia_do_listy_attachments(calls):
+    _submit(attachments=[{**ATT_A, "aspectRatio": 0.75}])
+    assert calls[0][2]["attachments"] == [ATT_A]
+
+
+def test_same_zdjecia_bez_opisu_to_tylko_akapit_zdjec(calls):
+    _submit(detailed_desc="", attachments=[ATT_A])
+    paras = calls[0][2]["messageRTF"]["content"]["root"]["children"]
+    assert len(paras) == 1 and paras[0]["children"][0]["type"] == "attachment"
+
+
+def test_bez_zdjec_brak_messageRTF(calls):
+    _submit()
+    assert "messageRTF" not in calls[0][2]

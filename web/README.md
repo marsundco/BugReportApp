@@ -73,7 +73,11 @@ Zgłoszenie to trzy wywołania (`app/goodday.py`):
 0. zdjęcia, każde osobno, zaraz po wybraniu (`POST /upload`):
    `POST /2.0/attachments/upload-urls` → `fileId` + jednorazowy link S3,
    potem `PUT` pliku na ten link (bez tokenu GoodDay)
-1. `POST /2.0/tasks` — `{projectId, title, fromUserId, message, attachments}`
+1. `POST /2.0/tasks` — `{projectId, title, fromUserId, message, attachments, messageRTF}`.
+   `messageRTF` (nieudokumentowane, format edytora Lexical przepisany ze zdjęcia
+   wstawionego ręcznie w GoodDay) wstawia zdjęcia **w opis karty pod tekstem**;
+   bez niego są tylko listą plików pod opisem. Proporcje zdjęć (z uwzględnieniem
+   obrotu EXIF z telefonu) liczy `app/imagesize.py`.
 2. `PUT /2.0/task/{id}/custom-fields` — `l8dmpO` numer projektu, `MBYlLP` nr rysunku, `5Mk38y` zgłaszający
 3. `PUT /2.0/task/{id}/status` — `{userId, statusId}` → `pcqxl7` („Nowe")
 

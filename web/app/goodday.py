@@ -39,6 +39,7 @@ import re
 import requests
 
 import config
+from app import imagesize
 
 logger = logging.getLogger("karty.goodday")
 
@@ -111,7 +112,12 @@ def upload_attachment(filename: str | None, content: bytes,
                            f"(błąd {put.status_code}).")
 
     logger.info("Załącznik wysłany: %s (%s, %d B)", file_id, name, len(content))
-    return {"fileId": file_id, "name": name, "size": len(content), "mime": mime}
+    entry = {"fileId": file_id, "name": name, "size": len(content), "mime": mime}
+    ratio = imagesize.aspect_ratio(content)
+    if ratio:
+        # Tylko do treści sformatowanej (zdjęcie w opisie) — nie do listy attachments.
+        entry["aspectRatio"] = round(ratio, 6)
+    return entry
 
 
 def count_attachments(task_id: str) -> int:
@@ -122,8 +128,54 @@ def count_attachments(task_id: str) -> int:
     return sum(len(m.get("attachments") or []) for m in resp.json())
 
 
+ATTACHMENT_FIELDS = ("fileId", "name", "size", "mime")   # pola listy attachments
+DEFAULT_ASPECT = 4 / 3                                    # zdjęcie z aparatu, poziome
+
+
+def _paragraph(children: list[dict]) -> dict:
+    return {"textStyle": "", "direction": None, "indent": 0, "format": "", "version": 1,
+            "textFormat": 0, "type": "custom-paragraph", "children": children}
+
+
+def build_message_rtf(message: str, attachments: list[dict]) -> dict:
+    """Treść karty w formacie edytora GoodDay (Lexical): opis, a pod nim zdjęcia.
+
+    Pole `messageRTF` NIE jest w dokumentacji API — format przepisany ze zdjęcia
+    wstawionego ręcznie w GoodDay („insert into message"), sprawdzony 2026-10-13:
+    zdjęcia wyświetlają się w opisie karty. Same `attachments` dają tylko listę
+    plików pod opisem.
+
+    Węzeł zdjęcia z interfejsu ma jeszcze `attachmentId`, którego przed utworzeniem
+    karty nie znamy — GoodDay radzi sobie bez niego.
+    """
+    paragraphs = [
+        _paragraph([{"style": "", "format": 0, "text": line, "detail": 0, "version": 1,
+                     "mode": "normal", "type": "text"}] if line else [])
+        for line in message.split("\n")
+    ] if message else []
+
+    images = [{
+        "height": "auto", "width": "40%", "version": 1, "type": "attachment",
+        "alignment": "left",
+        "attachment": {
+            "fileId": a["fileId"], "name": a["name"], "fileName": a["name"],
+            "mime": a.get("mime") or "image/jpeg", "size": a.get("size") or 0,
+            "systemType": 1, "fileType": 1, "storageProvider": 12, "preview": 1,
+            "aspectRatio": a.get("aspectRatio") or DEFAULT_ASPECT,
+        },
+    } for a in attachments]
+
+    return {"content": {"root": {"direction": None, "indent": 0, "format": "",
+                                 "version": 1, "type": "root",
+                                 "children": paragraphs + [_paragraph(images)]}},
+            "v": "lexical-1"}
+
+
 def create_task(title: str, message: str, attachments: list[dict] | None = None) -> dict:
-    """Krok 1: utwórz zadanie. Zwraca surową odpowiedź GoodDay (z `id`, `shortId`)."""
+    """Krok 1: utwórz zadanie. Zwraca surową odpowiedź GoodDay (z `id`, `shortId`).
+
+    Ze zdjęciami: `message` zostaje zwykłym tekstem (podgląd, wyszukiwanie), a
+    `messageRTF` wstawia zdjęcia w opis pod tekstem."""
     payload = {
         "projectId": config.GOODDAY_PROJECT_ID,
         "title": title,
@@ -131,7 +183,9 @@ def create_task(title: str, message: str, attachments: list[dict] | None = None)
         "message": message,
     }
     if attachments:
-        payload["attachments"] = attachments
+        payload["attachments"] = [{k: a[k] for k in ATTACHMENT_FIELDS if k in a}
+                                  for a in attachments]
+        payload["messageRTF"] = build_message_rtf(message, attachments)
     resp = _post("/2.0/tasks", payload)
     if not resp.ok:
         logger.error("Tworzenie zadania nieudane: %s %s", resp.status_code, resp.text[:500])

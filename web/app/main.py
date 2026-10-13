@@ -112,6 +112,9 @@ def _parse_attachments(raw: str) -> list[dict] | None:
             entry["size"] = it["size"]
         if isinstance(it.get("mime"), str) and len(it["mime"]) <= 100:
             entry["mime"] = it["mime"]
+        ratio = it.get("aspectRatio")
+        if isinstance(ratio, (int, float)) and not isinstance(ratio, bool) and 0.05 < ratio < 20:
+            entry["aspectRatio"] = float(ratio)
         out.append(entry)
     return out
 
